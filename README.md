@@ -5,7 +5,7 @@
 
 ---
 
-## 📑 Lab Index
+## Lab Index
 
 ### [Lab 1: Multi-Node Kubernetes Cluster Setup and Workload Management](./Lab_1/README.md)
 - **InLab:**
