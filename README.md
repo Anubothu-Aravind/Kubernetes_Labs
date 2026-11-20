@@ -22,3 +22,9 @@
   - Question 1: Follow one Deployment from the kubectl command to running containers and collect evidence of acting components (API Server, etcd, Controllers, Scheduler, Kubelet, CRI, Kube-proxy, and Optimistic Concurrency Control 409 Conflict).
 - **PostLab:**
   - Question 1: Concurrency conflict manifest verification (`web-old.yaml`).
+
+### [Lab 3: Write Your First Controller](./Lab_3/README.md)
+- **InLab:**
+  - Question 1: Implement and verify a custom Kubernetes controller in Go using `client-go` to manage ConfigMaps across labelled namespaces (informers, work queues, reconciliation loop, self-healing, level-triggered catch-up, concurrency idempotency, and label removal semantics).
+- **PostLab:**
+  - Status: Pending / To be assigned.
