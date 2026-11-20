@@ -1,31 +1,25 @@
 # Lab 3: Write Your First Controller
 
-**Course:** 26CS52B1E · Kubernetes and Container Orchestration  
-**Program:** M.Tech CSE · Semester 2  
-**Implementation:** Custom Kubernetes Controller with `client-go`  
-
----
-
 ## Architecture & Controller Overview
 
 A Kubernetes controller continuously drives the **actual state** of a cluster toward the user-defined **desired state**. Unlike request-response systems, controllers are control loops that operate asynchronously using three core building blocks:
 
-```mermaid
-flowchart TD
-    subgraph Controller ["Custom Welcome Controller"]
-        direction LR
-        Informer["Informers (The Eyes)<br/>Namespaces & ConfigMaps<br/>(List + Watch + Local Cache)"]
-        Queue["Work Queue (The To-Do List)<br/>Rate-Limiting Queue<br/>(Holds Namespace Keys)"]
-        Reconcile["Reconcile Loop (The Hands)<br/>reconcile(client, lister, name)<br/>(Fixes State Drift)"]
-
-        Informer -->|"Event Handlers (Add / Delete)"| Queue
-        Queue -->|"Worker Loop (processNextItem)"| Reconcile
-    end
-
-    APIServer[("Kubernetes API Server & etcd")]
-
-    APIServer -.->|"HTTP Watch Streams & Initial List"| Informer
-    Reconcile -->|"Writes (Create ConfigMap)"| APIServer
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           Custom Welcome Controller                         │
+│                                                                             │
+│  ┌────────────────────────┐      ┌──────────────┐      ┌─────────────────┐  │
+│  │     Informers (Eyes)   │ ───> │  Work Queue  │ ───> │ Reconcile Function │
+│  │   Namespaces & CMs     │      │ (To-Do List) │      │     (Hands)     │
+│  │ (List + Watch + Cache) │      │              │      │                 │
+│  └────────────────────────┘      └──────────────┘      └─────────────────┘  │
+│               │                                                 │           │
+└───────────────┼─────────────────────────────────────────────────┼───────────┘
+                │ Watch Streams                                   │ Writes
+                ▼                                                 ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        Kubernetes API Server (etcd)                         │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 - **Informer (The Eyes):** Establishes an HTTP streaming watch on the API Server and populates an in-memory local cache. Queries read from local cache rather than overloading the API server.
@@ -225,11 +219,3 @@ The controller is implemented in [`InLab/main.go`](InLab/main.go). Key architect
 | **Cache Sync & Loop** | Lines 59–74 | Blocks until `cache.WaitForCacheSync` returns true, then launches `wait.Until` calling `processNextItem`. |
 | **Worker Processing** | Lines 76–93 | `processNextItem()` gets keys, calls `reconcile()`, manages `queue.Forget()` on success, or `queue.AddRateLimited()` on failure. |
 | **Reconcile Function** | Lines 95–121 | Reads namespace from cache (`lister.Get`), evaluates `klu.edu/managed` label, issues `Create`, and ignores `IsAlreadyExists`. |
-
----
-
-## PostLab
-
-### Status: Pending / To Be Assigned
-- **Directory Status:** The `PostLab/` directory is currently empty.
-- **Pending Tasks:** Post-lab questions, extended controller exercises (e.g., implementing ConfigMap cleanup upon label removal or owner reference garbage collection), and evaluation tasks are pending assignment. All artifacts and manifests will be committed to `PostLab/` upon completion.
