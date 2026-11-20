@@ -1,5 +1,9 @@
 # Lab 3: Write Your First Controller
 
+**Course:** 26CS52B1E · Kubernetes and Container Orchestration  
+**Program:** M.Tech CSE · Semester 2  
+**Implementation:** Custom Kubernetes Controller with `client-go`  
+
 ---
 
 ## Architecture & Controller Overview
