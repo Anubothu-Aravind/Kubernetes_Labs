@@ -221,3 +221,11 @@ The controller is implemented in [`InLab/main.go`](InLab/main.go). Key architect
 | **Cache Sync & Loop** | Lines 59–74 | Blocks until `cache.WaitForCacheSync` returns true, then launches `wait.Until` calling `processNextItem`. |
 | **Worker Processing** | Lines 76–93 | `processNextItem()` gets keys, calls `reconcile()`, manages `queue.Forget()` on success, or `queue.AddRateLimited()` on failure. |
 | **Reconcile Function** | Lines 95–121 | Reads namespace from cache (`lister.Get`), evaluates `klu.edu/managed` label, issues `Create`, and ignores `IsAlreadyExists`. |
+
+---
+
+## PostLab
+
+### Status: Pending / To Be Assigned
+- **Directory Status:** The `PostLab/` directory is currently empty.
+- **Pending Tasks:** Post-lab questions, extended controller exercises (e.g., implementing ConfigMap cleanup upon label removal or owner reference garbage collection), and evaluation tasks are pending assignment. All artifacts and manifests will be committed to `PostLab/` upon completion.
