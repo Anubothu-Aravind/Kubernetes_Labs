@@ -225,61 +225,90 @@ The controller is implemented in [`InLab/main.go`](InLab/main.go). Key architect
 ## PostLab
 
 ### Question 1: Create your own ConfigMap with student identification metadata.
-- **Why and what we are doing:** Modify the controller in [`PostLab/Task_1/main.go`](PostLab/Task_1/main.go) to create a personalized ConfigMap named `student-2601050069` holding student ID, section, and welcome message inside namespaces carrying `klu.edu/managed=true`.
+
+#### Step 1: Controller Modification & Startup
+- **Why and what we are doing:** Launch the modified controller from [`PostLab/Task_1/main.go`](PostLab/Task_1/main.go) configured with custom ConfigMap name `student-2601050069` and student metadata payload.
 ```bash
-# Terminal 1: Start modified controller
 cp Task_1/main.go main.go
 gofmt -w main.go
 go run .
+```
+![01_task1_controller_started](ScreenShots/PostLab/01_task1_controller_started.png)
 
-# Terminal 2: Provision namespace and verify ConfigMap
+#### Step 2: Namespace Provisioning & ConfigMap Inspection
+- **Why and what we are doing:** Create namespace `task1`, apply the management label `klu.edu/managed=true`, and inspect the generated ConfigMap YAML to verify student ID (`2601050069`), section (`Sec - 1`), and greeting message.
+```bash
 kubectl create namespace task1
 kubectl label namespace task1 klu.edu/managed=true
 kubectl get configmaps -n task1
 kubectl get configmap student-2601050069 -n task1 -o yaml
+```
+![02_configmap_yaml](ScreenShots/PostLab/02_configmap_yaml.png)
+
+#### Step 3: Verify Namespace Management Label
+- **Why and what we are doing:** Verify that the `klu.edu/managed=true` label is present in the namespace metadata.
+```bash
 kubectl get namespace task1 --show-labels
 ```
-![01_task1_controller_started](ScreenShots/PostLab/01_task1_controller_started.png)
-![02_configmap_yaml](ScreenShots/PostLab/02_configmap_yaml.png)
 ![03_task1_namespace_label](ScreenShots/PostLab/03_task1_namespace_label.png)
 
 ---
 
 ### Question 2: Implement department-based namespace filtering (`klu.edu/dept=cse`).
-- **Why and what we are doing:** Update the label selector in [`PostLab/Task_2/main.go`](PostLab/Task_2/main.go) to target `klu.edu/dept=cse`. Create namespaces `cse-lab` and `ece-lab` to verify that ConfigMaps are selectively provisioned only in matching departments while ignoring others.
+
+#### Step 1: Launch Department-Filtered Controller
+- **Why and what we are doing:** Run the controller configured with `managedLabel = "klu.edu/dept"` and department check `ns.Labels[managedLabel] != "cse"` from [`PostLab/Task_2/main.go`](PostLab/Task_2/main.go).
 ```bash
-# Terminal 1: Run department-scoped controller
 cd Task_2
 go run .
+```
+![01_task2_controller_started](ScreenShots/PostLab/01_task2_controller_started.png)
 
-# Terminal 2: Test multi-department provisioning
+#### Step 2: Multi-Department Namespace Creation & Selective Provisioning Verification
+- **Why and what we are doing:** Create `cse-lab` and `ece-lab` namespaces. Label `cse-lab` with `klu.edu/dept=cse` and `ece-lab` with `klu.edu/dept=ece`. Verify that the ConfigMap is created only in `cse-lab` and ignored in `ece-lab`.
+```bash
 kubectl create namespace cse-lab
 kubectl create namespace ece-lab
 kubectl label namespace cse-lab klu.edu/dept=cse
 kubectl label namespace ece-lab klu.edu/dept=ece
-
 kubectl get configmaps -n cse-lab
 kubectl get configmaps -n ece-lab
 ```
-![01_task2_controller_started](ScreenShots/PostLab/01_task2_controller_started.png)
 ![02_task2_label_filter_verification](ScreenShots/PostLab/02_task2_label_filter_verification.png)
 
 ---
 
 ### Question 3: Implement automated cleanup and garbage collection upon label removal.
-- **Why and what we are doing:** Address the orphan resource gap from InLab Experiment D. In [`PostLab/Task_3/main.go`](PostLab/Task_3/main.go), update `reconcile()` so that if `ns.Labels[managedLabel] != "cse"`, the controller actively deletes `student-2601050069` using `client.CoreV1().ConfigMaps(name).Delete()`.
+
+#### Step 1: Controller Startup & Automatic State Correction
+- **Why and what we are doing:** Start the cleanup-enabled controller from [`PostLab/Task_3/main.go`](PostLab/Task_3/main.go). During startup cache sync, the controller reconciles existing namespaces and actively deletes orphan ConfigMaps from namespaces that do not match `klu.edu/dept=cse`.
 ```bash
-# Terminal 1: Start cleanup-enabled controller
 gofmt -w main.go
 go run .
+```
+![01_task3_controller_started](ScreenShots/PostLab/01_task3_controller_started.png)
 
-# Terminal 2: Verify presence, then remove label
+#### Step 2: Label Managed Namespace & Verify ConfigMap Creation
+- **Why and what we are doing:** Label `cse-lab` with `klu.edu/dept=cse` and verify that the `student-2601050069` ConfigMap is created.
+```bash
 kubectl label namespace cse-lab klu.edu/dept=cse
+kubectl get namespace cse-lab --show-labels
 kubectl get configmaps -n cse-lab
+```
+![02_configmap_before_removal](ScreenShots/PostLab/02_configmap_before_removal.png)
+
+#### Step 3: Remove Department Management Label
+- **Why and what we are doing:** Remove the management label from `cse-lab` (`kubectl label namespace cse-lab klu.edu/dept-`) to trigger the controller's automated cleanup logic.
+```bash
+kubectl get configmap student-2601050069 -n cse-lab
 kubectl label namespace cse-lab klu.edu/dept-
 ```
-*Observation:* Upon unlabelling, the informer's `UpdateFunc` handler queues `cse-lab`, and `reconcile()` automatically removes the orphan ConfigMap, outputting `deleted ConfigMap student-2601050069 in namespace cse-lab`.
-![01_task3_controller_started](ScreenShots/PostLab/01_task3_controller_started.png)
-![02_configmap_before_removal](ScreenShots/PostLab/02_configmap_before_removal.png)
 ![03_namespace_label_removed](ScreenShots/PostLab/03_namespace_label_removed.png)
+
+#### Step 4: Verify Controller Event Handlers & Automated Deletion Logs
+- **Why and what we are doing:** Inspect the controller terminal logs to verify that the namespace update event was intercepted, calling `client.CoreV1().ConfigMaps(name).Delete()` to remove the orphan ConfigMap.
+```bash
+# Terminal 1 Controller Log Output
+# deleted ConfigMap student-2601050069 in namespace cse-lab
+```
 ![05_controller_deletion_logs](ScreenShots/PostLab/05_controller_deletion_logs.png)

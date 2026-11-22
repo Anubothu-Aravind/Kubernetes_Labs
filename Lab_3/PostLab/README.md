@@ -15,11 +15,11 @@ The Post-Lab exercises extend the custom `welcome-controller` developed during t
 
 ---
 
-## Tasks Performed
+## Questions & Tasks Performed
 
-### Task 1: Create Your Own ConfigMap with Student Metadata
+### Question 1: Create your own ConfigMap with student identification metadata.
 
-- **Objective:** Modify the controller to generate a ConfigMap named after student ID `student-2601050069` carrying custom fields (`id`, `section`, and `message`) inside namespaces labelled with `klu.edu/managed=true`.
+- **Aim / Objective:** Modify the controller to generate a ConfigMap named after student ID `student-2601050069` carrying custom fields (`id`, `section`, and `message`) inside namespaces labelled with `klu.edu/managed=true`.
 - **Source File:** [`Task_1/main.go`](Task_1/main.go)
 - **Key Code Modifications:**
   ```go
@@ -67,9 +67,9 @@ kubectl get namespace task1 --show-labels
 
 ---
 
-### Task 2: Namespace Department Label Filtering (`klu.edu/dept=cse`)
+### Question 2: Implement department-based namespace filtering (`klu.edu/dept=cse`).
 
-- **Objective:** Update the controller logic so that it only reconciles namespaces labelled with department identifier `klu.edu/dept=cse`, explicitly ignoring namespaces assigned to other departments (e.g., `ece`).
+- **Aim / Objective:** Update the controller logic so that it only reconciles namespaces labelled with department identifier `klu.edu/dept=cse`, explicitly ignoring namespaces assigned to other departments (e.g., `ece`).
 - **Source File:** [`Task_2/main.go`](Task_2/main.go)
 - **Key Code Modifications:**
   ```go
@@ -108,9 +108,9 @@ kubectl get configmaps -n ece-lab
 
 ---
 
-### Task 3: Automatic Cleanup / Garbage Collection Upon Label Removal
+### Question 3: Implement automated cleanup and garbage collection upon label removal.
 
-- **Objective:** Fix the orphan resource gap from InLab Experiment D. When a namespace loses the label `klu.edu/dept=cse`, the controller must actively delete the ConfigMap `student-2601050069` from that namespace.
+- **Aim / Objective:** Fix the orphan resource gap from InLab Experiment D. When a namespace loses the label `klu.edu/dept=cse`, the controller must actively delete the ConfigMap `student-2601050069` from that namespace.
 - **Source File:** [`Task_3/main.go`](Task_3/main.go)
 - **Key Code Modifications:**
   ```go
