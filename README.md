@@ -27,4 +27,6 @@
 - **InLab:**
   - Question 1: Implement and verify a custom Kubernetes controller in Go using `client-go` to manage ConfigMaps across labelled namespaces (informers, work queues, reconciliation loop, self-healing, level-triggered catch-up, concurrency idempotency, and label removal semantics).
 - **PostLab:**
-  - Status: Pending / To be assigned.
+  - Question 1: Create custom ConfigMap with student ID and section metadata (`student-2601050069`).
+  - Question 2: Implement department-based namespace filtering (`klu.edu/dept=cse`).
+  - Question 3: Implement automated cleanup and garbage collection upon label removal.

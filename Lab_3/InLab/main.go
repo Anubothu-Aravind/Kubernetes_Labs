@@ -108,7 +108,7 @@ func reconcile(client kubernetes.Interface, lister corelisters.NamespaceLister, 
 	// Desired object: a ConfigMap named "welcome" in this namespace.
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{Name: cmName, Namespace: name},
-		Data:       map[string]string{"message": "Welcome to " + name + " - managed by KLU controller"},
+		Data:       map[string]string{"message": "Welcome to " + name + " - managed by KLU controller by 2601050069"},
 	}
 	_, err = client.CoreV1().ConfigMaps(name).Create(context.Background(), cm, metav1.CreateOptions{})
 	if apierrors.IsAlreadyExists(err) {
