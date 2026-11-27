@@ -1,0 +1,951 @@
+{
+  "categories": [
+    {
+      "id": "cluster",
+      "label": "Make a cluster",
+      "line": "Create, list and break local clusters with kind.",
+      "intro": "A cluster is a control plane that decides and nodes that run your containers. kind builds one on your laptop, each node a Docker container.",
+      "story": {
+        "beat": "Act 1: The Setup",
+        "hook": "Teammate: \"Your app works on your laptop, now let's get it running on an actual multi-node cluster.\"",
+        "break": "Running Docker containers directly on one machine gives you no failover or scheduling across nodes.",
+        "fix": "Write a 3-node kind config (1 control-plane + 2 workers) and spin up the cluster with kind create cluster.",
+        "verify": "Run kubectl get nodes -o wide until all three nodes report Ready."
+      },
+      "recipes": [
+        "nodes",
+        "fail"
+      ]
+    },
+    {
+      "id": "deploy",
+      "label": "Deploy an app",
+      "line": "Run containers as Deployments, Jobs and one-off Pods.",
+      "intro": "A Deployment keeps a set of identical Pods running. Create one with a single command, or describe it in a YAML file and apply it.",
+      "story": {
+        "beat": "Act 2: The Inciting Incident",
+        "hook": "Teammate: \"Uh oh, our bare Pod crashed and lost its state, and users still can't reach it from outside!\"",
+        "break": "A standalone Pod (kubectl run) is mortal: if it crashes or gets deleted, nothing brings it back.",
+        "fix": "Create a Deployment so Kubernetes maintains 3 replicas automatically, then expose it with a Service.",
+        "verify": "Delete one Pod and watch kubectl get pods -o wide spin up a replacement, then open localhost:8080."
+      },
+      "recipes": [
+        "yaml",
+        "deploy"
+      ]
+    },
+    {
+      "id": "scale",
+      "label": "Scale and update",
+      "line": "More replicas, new images, rollbacks.",
+      "intro": "Change how many Pods run and which image they run. A Deployment replaces Pods a few at a time, so the app stays up.",
+      "story": {
+        "beat": "Act 4: The Midpoint Twist",
+        "hook": "Teammate: \"Traffic just spiked 10x, our single Pod is choking, and we also need to ship v1.27 without downtime!\"",
+        "break": "One replica can't handle the load, and restarting everything at once drops live user requests.",
+        "fix": "Scale up replicas with kubectl scale, then roll out the new image gradually, or roll back if it breaks.",
+        "verify": "Check kubectl rollout status deployment/web and confirm all replicas are Ready."
+      },
+      "recipes": [
+        "update",
+        "heal"
+      ]
+    },
+    {
+      "id": "expose",
+      "label": "Reach your app",
+      "line": "Services and port-forwarding from your laptop.",
+      "intro": "Pods come and go with new IPs. A Service gives them one stable name, and port-forward brings it to your laptop.",
+      "story": {
+        "beat": "Act 2b: Networking",
+        "hook": "Teammate: \"The Pod restarted and its IP changed again, our frontend can't hardcode Pod IPs!\"",
+        "break": "Every time a Deployment replaces a Pod, Kubernetes assigns it a brand-new internal IP address.",
+        "fix": "Create a ClusterIP Service that tracks healthy Pods by label, and use port-forward to test from your laptop.",
+        "verify": "Run kubectl get endpointslices to see the Service automatically pointing at your live Pod IPs."
+      },
+      "recipes": []
+    },
+    {
+      "id": "config",
+      "label": "Config and secrets",
+      "line": "ConfigMaps, Secrets and environment variables.",
+      "intro": "Keep settings out of the image. ConfigMaps hold plain values, Secrets hold passwords and tokens.",
+      "story": {
+        "beat": "Act 3: Rising Action",
+        "hook": "Teammate: \"Wait, our database password and environment flags are hardcoded right inside the container image!\"",
+        "break": "Rebuilding a Docker image just to change a config flag or rotate a password is slow and unsafe.",
+        "fix": "Move non-sensitive settings into a ConfigMap and credentials into a Secret, injected at runtime.",
+        "verify": "Inspect the running Pod environment or volume mounts to confirm settings loaded cleanly."
+      },
+      "recipes": []
+    },
+    {
+      "id": "inspect",
+      "label": "Debug a pod",
+      "line": "Describe, logs, exec and events.",
+      "intro": "When a Pod misbehaves, describe it, read its logs and its events. Those three answer most questions.",
+      "story": {
+        "beat": "Act 5: The 2 AM Crisis",
+        "hook": "Pager alert at 2 AM: \"Production Pods are stuck Pending or CrashLoopBackOff, checkout is returning 503!\"",
+        "break": "kubectl get pods only tells you something is wrong, not why it happened.",
+        "fix": "Run kubectl describe pod for scheduling/probe events, kubectl logs for app crashes, and exec inside if needed.",
+        "verify": "Pinpoint the exact FailedScheduling or container error message and fix the manifest."
+      },
+      "recipes": []
+    },
+    {
+      "id": "ns",
+      "label": "Namespaces and labels",
+      "line": "Group things and select them.",
+      "intro": "Namespaces split one cluster into rooms. Labels tag objects so commands and controllers can pick them out.",
+      "story": {
+        "beat": "Act 6: The Resolution",
+        "hook": "Teammate: \"Staging and production Pods are mixed together in default, we need clean isolation and automation.\"",
+        "break": "Putting every team and environment in the default namespace makes cleanup and policies risky.",
+        "fix": "Separate workloads into dedicated Namespaces and tag them with labels so controllers know what to manage.",
+        "verify": "Query resources by namespace and label selector (-l) to verify clean isolation."
+      },
+      "recipes": []
+    },
+    {
+      "id": "helm",
+      "label": "Helm charts",
+      "line": "Install packaged apps in one line.",
+      "intro": "Helm installs packaged apps, called charts, with one command, and removes them just as easily.",
+      "recipes": []
+    },
+    {
+      "id": "setup",
+      "label": "Shell setup",
+      "line": "Versions, contexts, aliases and tab completion.",
+      "intro": "Before the first cluster, check the tools answer and set up your shell. An alias and tab completion save thousands of keystrokes.",
+      "recipes": []
+    },
+    {
+      "id": "trace",
+      "label": "Look inside",
+      "line": "etcd, the runtime, kubelet logs and the API.",
+      "intro": "Follow a request below kubectl: the API server, etcd, the container runtime and the kubelet.",
+      "recipes": []
+    },
+    {
+      "id": "go",
+      "label": "Controllers in Go",
+      "line": "client-go projects from scratch.",
+      "intro": "A controller watches the cluster and fixes what drifts. These commands set up a client-go project.",
+      "recipes": [
+        "controller"
+      ]
+    },
+    {
+      "id": "clean",
+      "label": "Clean up",
+      "line": "Delete what you made.",
+      "intro": "Delete what you made so the next exercise starts clean.",
+      "recipes": []
+    }
+  ],
+  "commands": [
+    {
+      "cat": "cluster",
+      "top": true,
+      "cmd": "kind create cluster --config kind-3node.yaml",
+      "desc": "Creates a cluster from a config file. With the 3-node file you get 1 control-plane and 2 workers.",
+      "when": "Starting any lab. Takes about a minute.",
+      "lab": 1,
+      "snippet": {
+        "name": "kind-3node.yaml",
+        "lang": "yaml",
+        "code": "kind: Cluster\napiVersion: kind.x-k8s.io/v1alpha4\nname: klu\nnodes:\n  - role: control-plane\n  - role: worker\n  - role: worker"
+      }
+    },
+    {
+      "cat": "cluster",
+      "cmd": "kind create cluster --name demo",
+      "desc": "A quick single-node cluster called demo, no config file.",
+      "when": "A scratch cluster to try something."
+    },
+    {
+      "cat": "cluster",
+      "cmd": "kind get clusters",
+      "desc": "Lists every kind cluster on this machine.",
+      "when": "Finding a cluster’s name before switching or deleting."
+    },
+    {
+      "cat": "cluster",
+      "top": true,
+      "cmd": "kubectl get nodes -o wide",
+      "desc": "Nodes with status, role, version and internal IP.",
+      "when": "After creating a cluster: wait until every node is Ready.",
+      "lab": 1
+    },
+    {
+      "cat": "cluster",
+      "cmd": "kubectl cluster-info",
+      "desc": "Shows where the API server and CoreDNS are running.",
+      "when": "Checking kubectl can reach the cluster at all."
+    },
+    {
+      "cat": "cluster",
+      "cmd": "docker ps",
+      "desc": "Each kind node is a Docker container: klu-control-plane, klu-worker, klu-worker2.",
+      "when": "Seeing the containers behind your nodes.",
+      "lab": 1
+    },
+    {
+      "cat": "cluster",
+      "cmd": "kubectl get pods -n kube-system",
+      "desc": "The control plane: etcd, kube-apiserver, controller-manager, scheduler, kube-proxy, CoreDNS.",
+      "when": "Identifying control-plane components.",
+      "lab": 1
+    },
+    {
+      "cat": "cluster",
+      "cmd": "kind load docker-image my-app:dev --name klu",
+      "desc": "Copies a locally built image into the kind nodes, so Pods can use it without a registry.",
+      "when": "Running an image you built with docker build."
+    },
+    {
+      "cat": "cluster",
+      "cmd": "docker stop klu-worker",
+      "desc": "Stops one node’s container to simulate a machine failure. It turns NotReady after about 40s.",
+      "when": "Node failure experiments.",
+      "lab": 1
+    },
+    {
+      "cat": "cluster",
+      "cmd": "docker start klu-worker",
+      "desc": "Brings the stopped node back. It rejoins and turns Ready.",
+      "when": "Recovering after the failure experiment.",
+      "lab": 1
+    },
+    {
+      "cat": "cluster",
+      "cmd": "kubectl cordon klu-worker",
+      "desc": "Marks a node unschedulable. Existing Pods stay; undo with kubectl uncordon.",
+      "when": "Before maintenance, or to push new Pods elsewhere."
+    },
+    {
+      "cat": "cluster",
+      "cmd": "kubectl drain klu-worker --ignore-daemonsets",
+      "desc": "Evicts Pods from a node so it can be serviced.",
+      "when": "Simulating planned maintenance."
+    },
+    {
+      "cat": "cluster",
+      "cmd": "kubectl taint nodes klu-worker team=a:NoSchedule",
+      "desc": "Only Pods that tolerate team=a may be scheduled on this node. Add a trailing - to remove it.",
+      "when": "Reserving a node, or reproducing a Pending Pod."
+    },
+    {
+      "cat": "deploy",
+      "top": true,
+      "cmd": "kubectl create deployment web --image=nginx --replicas=3",
+      "desc": "A Deployment named web running 3 nginx Pods.",
+      "when": "The quickest way to get an app running.",
+      "lab": 1
+    },
+    {
+      "cat": "deploy",
+      "top": true,
+      "cmd": "kubectl apply -f deployment.yaml",
+      "desc": "Creates or updates whatever the YAML file describes. Run it again after editing the file.",
+      "when": "Keeping manifests in files, the normal way."
+    },
+    {
+      "cat": "deploy",
+      "cmd": "kubectl create deployment web --image=nginx --dry-run=client -o yaml > deployment.yaml",
+      "ps": "kubectl create deployment web --image=nginx --dry-run=client -o yaml | Out-File -Encoding utf8 deployment.yaml",
+      "desc": "Writes a starter Deployment YAML without creating anything.",
+      "when": "Instead of typing YAML by hand."
+    },
+    {
+      "cat": "deploy",
+      "cmd": "kubectl apply -f https://k8s.io/examples/application/deployment.yaml",
+      "desc": "Applies the nginx example from the Kubernetes docs straight from its URL.",
+      "when": "Trying apply without writing a file."
+    },
+    {
+      "cat": "deploy",
+      "cmd": "kubectl get deployments",
+      "desc": "Deployments with ready, up-to-date and available counts.",
+      "when": "Checking a deploy finished."
+    },
+    {
+      "cat": "deploy",
+      "cmd": "kubectl run tmp --image=busybox:1.36 --rm -it --restart=Never -- sh",
+      "desc": "A throwaway Pod with a shell, deleted when you exit.",
+      "when": "Testing DNS or a Service from inside the cluster."
+    },
+    {
+      "cat": "deploy",
+      "cmd": "kubectl create job hello --image=busybox:1.36 -- echo hello",
+      "desc": "A Job runs a container to completion once.",
+      "when": "One-off tasks: a migration, a backup, a test."
+    },
+    {
+      "cat": "deploy",
+      "cmd": "kubectl create cronjob tick --image=busybox:1.36 --schedule=\"*/1 * * * *\" -- date",
+      "desc": "A CronJob runs a Job on a schedule, here every minute.",
+      "when": "Recurring tasks."
+    },
+    {
+      "cat": "scale",
+      "top": true,
+      "cmd": "kubectl scale deployment web --replicas=5",
+      "desc": "Sets the desired Pod count. The ReplicaSet adds or removes Pods to match.",
+      "when": "Scaling up or down.",
+      "lab": 1
+    },
+    {
+      "cat": "scale",
+      "top": true,
+      "cmd": "kubectl set image deployment/web nginx=nginx:1.27",
+      "desc": "Changes the container image, which starts a rolling update.",
+      "when": "Shipping a new version."
+    },
+    {
+      "cat": "scale",
+      "cmd": "kubectl rollout status deployment/web",
+      "desc": "Waits and reports until the rollout finishes.",
+      "when": "Right after a deploy or image change."
+    },
+    {
+      "cat": "scale",
+      "cmd": "kubectl rollout history deployment/web",
+      "desc": "Lists the revisions you can roll back to.",
+      "when": "Before an undo."
+    },
+    {
+      "cat": "scale",
+      "cmd": "kubectl rollout undo deployment/web",
+      "desc": "Goes back to the previous revision.",
+      "when": "When a new version breaks."
+    },
+    {
+      "cat": "scale",
+      "cmd": "kubectl rollout restart deployment/web",
+      "desc": "Replaces every Pod one by one with the same spec.",
+      "when": "Picking up a changed ConfigMap or Secret."
+    },
+    {
+      "cat": "scale",
+      "cmd": "kubectl autoscale deployment web --min=2 --max=5 --cpu-percent=80",
+      "desc": "Creates a HorizontalPodAutoscaler. Needs metrics-server in the cluster.",
+      "when": "Letting load decide the replica count."
+    },
+    {
+      "cat": "scale",
+      "cmd": "kubectl get pods -w",
+      "desc": "Watches Pods live. Ctrl+C to stop.",
+      "when": "In a second terminal while you scale or delete.",
+      "lab": 1
+    },
+    {
+      "cat": "scale",
+      "cmd": "kubectl delete pod <pod-name>",
+      "desc": "Deletes one Pod. Its ReplicaSet creates a replacement: self-healing.",
+      "when": "Demonstrating self-healing.",
+      "lab": 1
+    },
+    {
+      "cat": "expose",
+      "top": true,
+      "cmd": "kubectl expose deployment web --port=80",
+      "desc": "A ClusterIP Service in front of the Deployment’s Pods.",
+      "when": "Giving Pods one stable name and IP.",
+      "lab": 1
+    },
+    {
+      "cat": "expose",
+      "top": true,
+      "cmd": "kubectl port-forward service/web 8080:80",
+      "desc": "Forwards localhost:8080 to the Service. Open http://localhost:8080 and keep the terminal open.",
+      "when": "Viewing the app from your laptop.",
+      "lab": 1
+    },
+    {
+      "cat": "expose",
+      "cmd": "kubectl expose deployment web --type=NodePort --port=80",
+      "desc": "Opens the Service on a port of every node (30000 to 32767).",
+      "when": "Reaching the app by node IP instead of port-forward."
+    },
+    {
+      "cat": "expose",
+      "cmd": "kubectl get svc,endpointslices",
+      "desc": "Services and the Pod IPs behind them.",
+      "when": "A Service exists but the browser gets nothing.",
+      "lab": 2
+    },
+    {
+      "cat": "expose",
+      "cmd": "kubectl run curl --image=curlimages/curl --rm -it --restart=Never -- curl -s web",
+      "desc": "Calls the web Service by name from inside the cluster.",
+      "when": "Checking a Service works before blaming port-forward."
+    },
+    {
+      "cat": "expose",
+      "cmd": "docker run -d --name standalone-nginx -p 8081:80 nginx",
+      "desc": "Plain nginx in Docker, no Kubernetes, on localhost:8081.",
+      "when": "Comparing a container with a Deployment.",
+      "lab": 1
+    },
+    {
+      "cat": "config",
+      "cmd": "kubectl create configmap app-config --from-literal=mode=dev",
+      "desc": "A ConfigMap with one key and value.",
+      "when": "Non-secret settings for Pods."
+    },
+    {
+      "cat": "config",
+      "cmd": "kubectl create configmap app-config --from-file=app.properties",
+      "desc": "A ConfigMap from a file; the file name becomes the key.",
+      "when": "Shipping a whole config file."
+    },
+    {
+      "cat": "config",
+      "cmd": "kubectl create secret generic db-pass --from-literal=password=change-me",
+      "desc": "A Secret. Values are base64-encoded, not encrypted.",
+      "when": "Passwords and tokens for Pods."
+    },
+    {
+      "cat": "config",
+      "cmd": "kubectl get secret db-pass -o jsonpath='{.data.password}' | base64 -d",
+      "ps": "[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String((kubectl get secret db-pass -o jsonpath='{.data.password}')))",
+      "desc": "Reads one Secret value back as plain text.",
+      "when": "Checking what a Pod will actually see."
+    },
+    {
+      "cat": "config",
+      "cmd": "kubectl set env deployment/web MODE=dev",
+      "desc": "Sets an environment variable on every container and rolls the Pods.",
+      "when": "Quick config changes without editing YAML."
+    },
+    {
+      "cat": "config",
+      "cmd": "kubectl get configmap welcome -n team-a -o yaml",
+      "desc": "Shows a ConfigMap as YAML.",
+      "when": "Verifying a controller produced the desired state.",
+      "lab": 3
+    },
+    {
+      "cat": "config",
+      "cmd": "kubectl edit deployment web",
+      "desc": "Opens the live object in your editor; saving applies it. Set KUBE_EDITOR to pick the editor.",
+      "when": "A one-off tweak you won’t keep in a file."
+    },
+    {
+      "cat": "inspect",
+      "top": true,
+      "cmd": "kubectl describe pod <pod-name>",
+      "desc": "Everything about a Pod, with its Events at the bottom.",
+      "when": "First stop for Pending, CrashLoopBackOff or ImagePullBackOff."
+    },
+    {
+      "cat": "inspect",
+      "top": true,
+      "cmd": "kubectl logs <pod-name> -f",
+      "desc": "Streams a container’s logs. Add --previous for the last crashed run.",
+      "when": "An app that starts and then fails."
+    },
+    {
+      "cat": "inspect",
+      "cmd": "kubectl logs deployment/web --all-containers",
+      "desc": "Logs from a Pod of the Deployment without looking up its name.",
+      "when": "Quick look at an app’s output."
+    },
+    {
+      "cat": "inspect",
+      "cmd": "kubectl get pods -o wide",
+      "desc": "Pods with the node each runs on and its IP.",
+      "when": "Seeing how Pods were spread across nodes.",
+      "lab": 1
+    },
+    {
+      "cat": "inspect",
+      "cmd": "kubectl get pods -A",
+      "desc": "Pods in every namespace.",
+      "when": "Something is running somewhere and you don’t know where."
+    },
+    {
+      "cat": "inspect",
+      "cmd": "kubectl exec -it <pod-name> -- sh",
+      "desc": "A shell inside a running container.",
+      "when": "Checking files, env vars or the network from inside."
+    },
+    {
+      "cat": "inspect",
+      "cmd": "kubectl get pod <pod-name> -o yaml",
+      "desc": "The full live object, status included.",
+      "when": "Seeing exactly what Kubernetes stored."
+    },
+    {
+      "cat": "inspect",
+      "cmd": "kubectl get events --sort-by=.metadata.creationTimestamp",
+      "desc": "Cluster events in time order, with the component that caused each.",
+      "when": "Working out what happened and in which order.",
+      "lab": 2
+    },
+    {
+      "cat": "inspect",
+      "cmd": "kubectl top pods",
+      "desc": "CPU and memory per Pod. Needs metrics-server.",
+      "when": "Finding the Pod that eats the node."
+    },
+    {
+      "cat": "inspect",
+      "cmd": "kubectl explain deployment.spec",
+      "desc": "Built-in docs for any field of any resource.",
+      "when": "You can’t remember a YAML field name."
+    },
+    {
+      "cat": "inspect",
+      "cmd": "kubectl api-resources",
+      "desc": "Every resource type the cluster knows, with short names.",
+      "when": "Finding what a CRD is called."
+    },
+    {
+      "cat": "ns",
+      "cmd": "kubectl create namespace team-a",
+      "desc": "A namespace groups and isolates objects.",
+      "when": "Separating teams, labs or experiments.",
+      "lab": 3
+    },
+    {
+      "cat": "ns",
+      "cmd": "kubectl config set-context --current --namespace=team-a",
+      "desc": "Makes team-a the default so you can drop -n.",
+      "when": "Working in one namespace for a while."
+    },
+    {
+      "cat": "ns",
+      "cmd": "kubectl label namespace team-a klu.edu/managed=true",
+      "desc": "Adds a label. Controllers and selectors act on labels.",
+      "when": "Opting a namespace into a controller.",
+      "lab": 3
+    },
+    {
+      "cat": "ns",
+      "cmd": "kubectl label namespace team-a klu.edu/managed-",
+      "desc": "A trailing minus removes the label.",
+      "when": "Testing what happens when an object drops out of scope.",
+      "lab": 3
+    },
+    {
+      "cat": "ns",
+      "cmd": "kubectl get ns --show-labels",
+      "desc": "Namespaces with all their labels.",
+      "when": "Checking a label was applied.",
+      "lab": 3
+    },
+    {
+      "cat": "ns",
+      "cmd": "kubectl get pods -l app=web",
+      "desc": "A label selector: only Pods with app=web.",
+      "when": "Filtering any list by label."
+    },
+    {
+      "cat": "helm",
+      "cmd": "helm repo add bitnami https://charts.bitnami.com/bitnami",
+      "desc": "Adds a chart repository.",
+      "when": "Before installing its charts."
+    },
+    {
+      "cat": "helm",
+      "cmd": "helm install my-nginx bitnami/nginx",
+      "desc": "Installs the nginx chart as a release named my-nginx.",
+      "when": "Running a packaged app in one line."
+    },
+    {
+      "cat": "helm",
+      "cmd": "helm list",
+      "desc": "Releases installed in the current namespace.",
+      "when": "Seeing what Helm put in the cluster."
+    },
+    {
+      "cat": "helm",
+      "cmd": "helm uninstall my-nginx",
+      "desc": "Removes everything the release created.",
+      "when": "Cleaning up a chart."
+    },
+    {
+      "cat": "setup",
+      "cmd": "kubectl version --client",
+      "desc": "The kubectl version, no cluster needed.",
+      "when": "Confirming kubectl is installed.",
+      "lab": 1
+    },
+    {
+      "cat": "setup",
+      "cmd": "docker run hello-world",
+      "desc": "Prints “Hello from Docker!” if the Docker engine is running.",
+      "when": "First thing: kind can’t start nodes without Docker.",
+      "lab": 1
+    },
+    {
+      "cat": "setup",
+      "cmd": "kubectl config get-contexts",
+      "desc": "Every cluster kubectl knows, with a * on the current one.",
+      "when": "Commands hit the wrong cluster."
+    },
+    {
+      "cat": "setup",
+      "cmd": "kubectl config use-context kind-klu",
+      "desc": "Points kubectl at the kind cluster named klu.",
+      "when": "Switching between clusters.",
+      "lab": 2
+    },
+    {
+      "cat": "setup",
+      "cmd": "alias k=kubectl",
+      "ps": "Set-Alias -Name k -Value kubectl",
+      "desc": "Type k instead of kubectl. Add it to ~/.bashrc, ~/.zshrc or your PowerShell $PROFILE to keep it.",
+      "when": "Once, on day one."
+    },
+    {
+      "cat": "setup",
+      "cmd": "source <(kubectl completion bash)",
+      "ps": "kubectl completion powershell | Out-String | Invoke-Expression",
+      "desc": "Tab completion for commands, resources and names. On zsh use kubectl completion zsh.",
+      "when": "Once, then put it in your shell profile."
+    },
+    {
+      "cat": "setup",
+      "cmd": "kubectl auth can-i create deployments",
+      "desc": "Answers yes or no for your current user.",
+      "when": "Debugging RBAC for an operator or a user."
+    },
+    {
+      "cat": "trace",
+      "cmd": "kubectl create deployment web --image=nginx:1.27 --replicas=2 -v=6",
+      "desc": "Verbose mode prints the HTTP calls kubectl makes (POST … 201 Created).",
+      "when": "Seeing that kubectl is just a REST client.",
+      "lab": 2
+    },
+    {
+      "cat": "trace",
+      "cmd": "kubectl get pods -l app=web -o custom-columns=POD:.metadata.name,OWNER:.metadata.ownerReferences[0].name,NODE:.spec.nodeName",
+      "desc": "Each Pod’s owner ReplicaSet and the node the scheduler picked.",
+      "when": "Following the ownership chain.",
+      "lab": 2,
+      "parts": [
+        { "flag": "-l app=web", "text": "Filter to Pods carrying the `app=web` label." },
+        { "flag": "-o custom-columns=...", "text": "Print only the three JSONPath columns (`POD`, `OWNER`, `NODE`) instead of the default table." }
+      ]
+    },
+    {
+      "cat": "trace",
+      "cmd": "kubectl -n kube-system exec etcd-klu-control-plane -- etcdctl --endpoints=https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key get /registry --prefix --keys-only | grep web",
+      "ps": "kubectl -n kube-system exec etcd-klu-control-plane -- etcdctl --endpoints=https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key get /registry --prefix --keys-only | Select-String \"web\"",
+      "desc": "Keys inside etcd: objects live under /registry/<type>/<namespace>/<name>.",
+      "when": "Proving etcd is the source of truth.",
+      "lab": 2,
+      "parts": [
+        { "flag": "kubectl -n kube-system exec etcd-klu-control-plane --", "text": "Run the command that follows inside the `etcd` Pod in `kube-system`." },
+        { "flag": "etcdctl --endpoints=https://127.0.0.1:2379", "text": "Connect to `etcd` over HTTPS on its local port `2379`." },
+        { "flag": "--cacert=... --cert=... --key=...", "text": "Pass the CA and server TLS certificates (`etcd` rejects unauthenticated requests)." },
+        { "flag": "get /registry --prefix --keys-only", "text": "List all keys under `/registry` without printing binary protobuf values." },
+        { "flag": "| grep web (or Select-String)", "text": "Filter the key list down to resources belonging to `web`." }
+      ]
+    },
+    {
+      "cat": "trace",
+      "cmd": "docker exec klu-worker crictl ps",
+      "desc": "Containers as the container runtime on that node sees them.",
+      "when": "Looking below Kubernetes at the CRI layer.",
+      "lab": 2
+    },
+    {
+      "cat": "trace",
+      "cmd": "docker exec klu-worker journalctl -u kubelet --no-pager | tail -n 20",
+      "ps": "docker exec klu-worker journalctl -u kubelet --no-pager | Select-Object -Last 20",
+      "desc": "The last kubelet log lines on that node; look for SyncLoop ADD.",
+      "when": "Watching the kubelet start your Pod.",
+      "lab": 2
+    },
+    {
+      "cat": "trace",
+      "cmd": "kubectl get deployment web -o yaml > web-old.yaml",
+      "ps": "cmd /c \"kubectl get deployment web -o yaml > web-old.yaml\"",
+      "desc": "Saves the live object, resourceVersion included.",
+      "when": "Taking a snapshot to replay later.",
+      "lab": 2
+    },
+    {
+      "cat": "trace",
+      "cmd": "kubectl replace -f web-old.yaml",
+      "desc": "Replaces with a saved copy. If the object changed since, the API server answers 409 Conflict.",
+      "when": "Seeing optimistic concurrency at work.",
+      "lab": 2
+    },
+    {
+      "cat": "go",
+      "cmd": "go mod init welcome-controller",
+      "desc": "Starts a Go module in the current folder.",
+      "when": "First step of a controller project.",
+      "lab": 3
+    },
+    {
+      "cat": "go",
+      "cmd": "go get k8s.io/client-go@v0.37.1 k8s.io/api@v0.37.1 k8s.io/apimachinery@v0.37.1",
+      "desc": "The official Kubernetes Go libraries; keep the three on the same version.",
+      "when": "Setting up a client-go controller.",
+      "lab": 3
+    },
+    {
+      "cat": "go",
+      "cmd": "go mod tidy",
+      "desc": "Adds missing and removes unused dependencies.",
+      "when": "After changing imports, or on “missing go.sum entry”.",
+      "lab": 3
+    },
+    {
+      "cat": "go",
+      "cmd": "go run .",
+      "desc": "Builds and runs the controller; it reads ~/.kube/config to reach the cluster.",
+      "when": "Running a controller locally.",
+      "lab": 3
+    },
+    {
+      "cat": "clean",
+      "top": true,
+      "cmd": "kubectl delete deployment web && kubectl delete service web",
+      "ps": "kubectl delete deployment web; kubectl delete service web",
+      "desc": "Removes the Deployment, its Pods and the Service.",
+      "when": "End of each exercise.",
+      "lab": 1
+    },
+    {
+      "cat": "clean",
+      "cmd": "kubectl delete -f deployment.yaml",
+      "desc": "Deletes everything a file created.",
+      "when": "Undoing an apply."
+    },
+    {
+      "cat": "clean",
+      "cmd": "kubectl delete namespace team-a",
+      "desc": "Deletes a namespace and everything in it.",
+      "when": "Wiping a whole experiment."
+    },
+    {
+      "cat": "clean",
+      "top": true,
+      "cmd": "kind delete cluster --name klu",
+      "desc": "Deletes the whole kind cluster.",
+      "when": "End of the day, or a cluster broken beyond repair.",
+      "lab": 1
+    },
+    {
+      "cat": "clean",
+      "cmd": "docker rm -f standalone-nginx",
+      "desc": "Stops and removes a standalone container.",
+      "when": "After a Docker comparison.",
+      "lab": 1
+    },
+    {
+      "cat": "clean",
+      "cmd": "docker system prune",
+      "desc": "Removes stopped containers, unused networks and dangling images.",
+      "when": "When your disk fills up."
+    }
+  ],
+  "recipes": [
+    {
+      "id": "nodes",
+      "title": "Make a multi-node cluster",
+      "intro": "kind reads a small YAML file that lists node roles. Add or remove `- role: worker` lines to change the node count.",
+      "steps": [
+        {
+          "text": "Write the config file",
+          "code": "cat > kind-3node.yaml <<'EOF'\nkind: Cluster\napiVersion: kind.x-k8s.io/v1alpha4\nname: klu\nnodes:\n- role: control-plane\n- role: worker\n- role: worker\nEOF",
+          "ps": "@'\nkind: Cluster\napiVersion: kind.x-k8s.io/v1alpha4\nname: klu\nnodes:\n- role: control-plane\n- role: worker\n- role: worker\n'@ | Set-Content kind-3node.yaml"
+        },
+        {
+          "text": "Create the cluster",
+          "code": "kind create cluster --config kind-3node.yaml"
+        },
+        {
+          "text": "Wait until all three nodes are Ready",
+          "code": "kubectl get nodes"
+        }
+      ]
+    },
+    {
+      "id": "yaml",
+      "title": "Deploy from a YAML file",
+      "intro": "The declarative way: describe the Deployment and Service in one file, apply it, change it, apply again.",
+      "steps": [
+        {
+          "text": "Write web.yaml",
+          "code": "cat > web.yaml <<'EOF'\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: web\nspec:\n  replicas: 3\n  selector:\n    matchLabels:\n      app: web\n  template:\n    metadata:\n      labels:\n        app: web\n    spec:\n      containers:\n      - name: nginx\n        image: nginx:1.27\n        ports:\n        - containerPort: 80\n---\napiVersion: v1\nkind: Service\nmetadata:\n  name: web\nspec:\n  selector:\n    app: web\n  ports:\n  - port: 80\nEOF",
+          "ps": "@'\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: web\nspec:\n  replicas: 3\n  selector:\n    matchLabels:\n      app: web\n  template:\n    metadata:\n      labels:\n        app: web\n    spec:\n      containers:\n      - name: nginx\n        image: nginx:1.27\n        ports:\n        - containerPort: 80\n---\napiVersion: v1\nkind: Service\nmetadata:\n  name: web\nspec:\n  selector:\n    app: web\n  ports:\n  - port: 80\n'@ | Set-Content web.yaml"
+        },
+        {
+          "text": "Apply it",
+          "code": "kubectl apply -f web.yaml"
+        },
+        {
+          "text": "Watch it roll out",
+          "code": "kubectl rollout status deployment/web"
+        },
+        {
+          "text": "Open http://localhost:8080",
+          "code": "kubectl port-forward service/web 8080:80"
+        }
+      ]
+    },
+    {
+      "id": "deploy",
+      "title": "Deploy, scale and open an app",
+      "intro": "The imperative way, five commands.",
+      "steps": [
+        {
+          "text": "Run nginx with 3 replicas",
+          "code": "kubectl create deployment web --image=nginx --replicas=3"
+        },
+        {
+          "text": "See where the Pods landed",
+          "code": "kubectl get pods -o wide"
+        },
+        {
+          "text": "Scale to 5",
+          "code": "kubectl scale deployment web --replicas=5"
+        },
+        {
+          "text": "Put a Service in front",
+          "code": "kubectl expose deployment web --port=80"
+        },
+        {
+          "text": "Open http://localhost:8080 (leave it running)",
+          "code": "kubectl port-forward service/web 8080:80"
+        }
+      ]
+    },
+    {
+      "id": "update",
+      "title": "Roll out a new version, then roll back",
+      "intro": "A Deployment replaces Pods a few at a time, so the app stays up.",
+      "steps": [
+        {
+          "text": "Change the image",
+          "code": "kubectl set image deployment/web nginx=nginx:1.27"
+        },
+        {
+          "text": "Watch the rollout",
+          "code": "kubectl rollout status deployment/web"
+        },
+        {
+          "text": "List revisions",
+          "code": "kubectl rollout history deployment/web"
+        },
+        {
+          "text": "Go back one",
+          "code": "kubectl rollout undo deployment/web"
+        }
+      ]
+    },
+    {
+      "id": "heal",
+      "title": "Watch self-healing",
+      "intro": "Two terminals side by side.",
+      "steps": [
+        {
+          "text": "Terminal 1: watch Pods",
+          "code": "kubectl get pods -w"
+        },
+        {
+          "text": "Terminal 2: delete one Pod (copy a name from Terminal 1)",
+          "code": "kubectl delete pod <pod-name>"
+        },
+        {
+          "text": "Terminal 1 shows a replacement within seconds",
+          "code": ""
+        }
+      ]
+    },
+    {
+      "id": "fail",
+      "title": "Simulate a node failure",
+      "intro": "Stopping a node container is the closest thing to pulling a server’s power cable.",
+      "steps": [
+        {
+          "text": "Stop a worker",
+          "code": "docker stop klu-worker"
+        },
+        {
+          "text": "After about 40s it shows NotReady",
+          "code": "kubectl get nodes"
+        },
+        {
+          "text": "Watch the Pods on that node",
+          "code": "kubectl get pods -o wide -w"
+        },
+        {
+          "text": "Bring it back",
+          "code": "docker start klu-worker"
+        }
+      ]
+    },
+    {
+      "id": "controller",
+      "title": "Run a client-go controller",
+      "intro": "The controller runs on your laptop and talks to the cluster through ~/.kube/config.",
+      "steps": [
+        {
+          "text": "Terminal 1: start it",
+          "code": "cd Lab_3/InLab\ngo mod tidy\ngo run ."
+        },
+        {
+          "text": "Terminal 2: opt a namespace in",
+          "code": "kubectl create namespace team-a\nkubectl label namespace team-a klu.edu/managed=true"
+        },
+        {
+          "text": "The welcome ConfigMap appears",
+          "code": "kubectl get configmap welcome -n team-a -o yaml"
+        }
+      ]
+    }
+  ],
+  "shellDiffs": [
+    {
+      "task": "Filter output",
+      "bash": "kubectl get pods | grep web",
+      "ps": "kubectl get pods | Select-String web"
+    },
+    {
+      "task": "Last N lines",
+      "bash": "kubectl logs web-1 | tail -n 5",
+      "ps": "kubectl logs web-1 | Select-Object -Last 5"
+    },
+    {
+      "task": "Set a variable",
+      "bash": "NODE=klu-worker",
+      "ps": "$NODE = \"klu-worker\""
+    },
+    {
+      "task": "Read a file",
+      "bash": "cat web.yaml",
+      "ps": "Get-Content web.yaml"
+    },
+    {
+      "task": "Run two commands",
+      "bash": "kubectl apply -f a.yaml && kubectl get pods",
+      "ps": "kubectl apply -f a.yaml; kubectl get pods"
+    },
+    {
+      "task": "Line continuation",
+      "bash": "\\  (backslash)",
+      "ps": "`  (backtick)"
+    },
+    {
+      "task": "Write a file",
+      "bash": "cat > web.yaml <<'EOF' ... EOF",
+      "ps": "@' ... '@ | Set-Content web.yaml"
+    },
+    {
+      "task": "Decode base64",
+      "bash": "base64 -d",
+      "ps": "[Convert]::FromBase64String(...)"
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+[
+  {
+    "title": "Cannot connect to the Docker daemon",
+    "symptom": "kind or docker prints `Cannot connect to the Docker daemon at unix:///var/run/docker.sock` or `error during connect` on Windows.",
+    "fix": "Docker isn't running. On macOS/Windows open Docker Desktop and wait until it says Running. On Linux start the service.",
+    "code": "sudo systemctl start docker\ndocker ps"
+  },
+  {
+    "title": "permission denied … docker.sock (Linux)",
+    "symptom": "`docker ps` works with sudo but not without.",
+    "fix": "Add yourself to the docker group, then log out and back in (or use newgrp for the current shell).",
+    "code": "sudo usermod -aG docker $USER\nnewgrp docker"
+  },
+  {
+    "title": "kind create cluster: node(s) already exist",
+    "symptom": "`ERROR: failed to create cluster: node(s) already exist for a cluster with the name \"klu\"`",
+    "fix": "A cluster with that name is still around from last time. Reuse it, or delete it and create again.",
+    "code": "kind get clusters\nkind delete cluster --name klu\nkind create cluster --config kind-3node.yaml"
+  },
+  {
+    "title": "kubectl: connection refused / wrong cluster",
+    "symptom": "`The connection to the server 127.0.0.1:xxxxx was refused` or commands show objects you don't recognise.",
+    "fix": "kubectl is pointing at an old or deleted cluster. List contexts and switch to the kind one. If Docker restarted, the node containers may be stopped: start them.",
+    "code": "kubectl config get-contexts\nkubectl config use-context kind-klu\ndocker start klu-control-plane klu-worker klu-worker2"
+  },
+  {
+    "title": "Pod stuck in Pending",
+    "symptom": "`kubectl get pods` shows Pending for a long time.",
+    "fix": "The scheduler couldn't place it. Read the FailedScheduling event: usually not enough CPU/memory, a taint, or a nodeSelector that matches no node.",
+    "code": "kubectl describe pod <pod-name>\nkubectl get events --field-selector reason=FailedScheduling"
+  },
+  {
+    "title": "ImagePullBackOff / ErrImagePull",
+    "symptom": "Pod never starts; status says ImagePullBackOff.",
+    "fix": "The image name or tag is wrong, or there is no internet. Check the Events section. For local images, load them into kind first.",
+    "code": "kubectl describe pod <pod-name>\nkind load docker-image my-image:dev --name klu"
+  },
+  {
+    "title": "CrashLoopBackOff",
+    "symptom": "Pod starts, dies, restarts again and again.",
+    "fix": "The app inside is exiting. Look at the logs of the last crashed run.",
+    "code": "kubectl logs <pod-name> --previous\nkubectl describe pod <pod-name>"
+  },
+  {
+    "title": "port-forward: address already in use",
+    "symptom": "`unable to listen on port 8080` when port-forwarding.",
+    "fix": "Something else (often an old port-forward) is using the port. Pick another local port or stop the old process.",
+    "code": "kubectl port-forward service/web 8090:80"
+  },
+  {
+    "title": "Node NotReady after laptop sleep or reboot",
+    "symptom": "Nodes show NotReady or the API server doesn't answer after a restart.",
+    "fix": "kind node containers don't always restart cleanly. Start them; if still broken, recreate the cluster (it only takes a minute).",
+    "code": "docker start $(docker ps -aq --filter label=io.x-k8s.kind.cluster=klu)\nkubectl get nodes"
+  },
+  {
+    "title": "Go: missing go.sum entry / cannot find package",
+    "symptom": "`go run .` fails with missing go.sum entry for module providing package k8s.io/...",
+    "fix": "Dependencies aren't downloaded or go.mod is out of date. Tidy the module. Keep client-go, api and apimachinery on the same version.",
+    "code": "go mod tidy\ngo run ."
+  },
+  {
+    "title": "Controller can't find kubeconfig",
+    "symptom": "`stat /home/you/.kube/config: no such file or directory` when starting the Lab 3 controller.",
+    "fix": "kind writes ~/.kube/config when it creates a cluster. If you created it with a different user or KUBECONFIG, export it for the controller.",
+    "code": "kind export kubeconfig --name klu\nls ~/.kube/config"
+  },
+  {
+    "title": "Select-String is not recognized (macOS/Linux)",
+    "symptom": "Commands copied from a lab fail with `Select-String: command not found`.",
+    "fix": "Labs 1 and 2 were recorded in Windows PowerShell. Replace PowerShell-only helpers with their bash equivalents: see the shell differences table on the Commands page.",
+    "code": "# PowerShell:  ... | Select-String web\n# bash/zsh:    ... | grep web"
+  }
+]

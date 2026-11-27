@@ -1,0 +1,111 @@
+{
+  "code": "26CS52B1E",
+  "title": "Kubernetes and Container Orchestration",
+  "program": "M.Tech CSE: Semester 2",
+  "outcomes": [
+    { "id": "CO1", "title": "Kubernetes Internals: Source-Level Deep Dive", "summary": "Control plane and data plane, informers and work queues, reconciliation, etcd, admission, scheduler internals and the CRI/CNI/CSI interfaces." },
+    { "id": "CO2", "title": "Operators with controller-runtime / kubebuilder", "summary": "The operator pattern, kubebuilder scaffolding, Reconcile best practices, status, finalizers, owner references, metrics and packaging." },
+    { "id": "CO3", "title": "CRDs, API Design and Schema Engineering", "summary": "Spec/status design, OpenAPI v3 schemas, CEL rules, defaulting and validating webhooks, conversion webhooks and API versioning." },
+    { "id": "CO4", "title": "Multi-Cluster Patterns", "summary": "Cluster API lifecycle, Karmada federation, vCluster tenants, Cilium Cluster Mesh and multi-cluster traffic and failover." },
+    { "id": "CO5", "title": "Crossplane, Kratix and Cluster Autoscaling", "summary": "Infra-as-data with Crossplane compositions, Kratix Promises, Karpenter just-in-time nodes and KEDA event-driven scaling." },
+    { "id": "CO6", "title": "Internal Developer Platforms on Kubernetes", "summary": "Backstage catalog, TechDocs, custom plugins, scaffolder actions and golden-path self-service." }
+  ],
+  "sessions": [
+    {
+      "n": 1,
+      "co": "CO1",
+      "topic": "Build a multi-node cluster with kind; identify control-plane Pods; deploy, scale and expose an app",
+      "outcome": "Match each event in the cluster to the component that caused it.",
+      "story": "When you first hear about Kubernetes, it sounds abstract until you actually spin up a cluster on your own machine. In this lab, we start with a blank terminal, wire up a 3-node cluster inside Docker using kind, peek into kube-system to see the control-plane Pods running, and then deliberately break things, killing a Pod and stopping a worker node, to watch Kubernetes heal itself.",
+      "storyArc": {
+        "beat": "Chapter 1: The Setup & First Self-Heal",
+        "hook": "Teammate: \"Your nginx app runs fine in Docker on your laptop, can we run 3 copies across worker nodes so one crash doesn't take it down?\"",
+        "break": "A single container dies permanently if it crashes or its host stops, and users have no way to reach it.",
+        "fix": "Spin up a 3-node kind cluster, deploy nginx with 3 replicas, expose it via a Service, and test Pod/node failures.",
+        "verify": "Delete a Pod and stop a worker container, watch Kubernetes reschedule Pods and serve nginx on localhost:8080."
+      },
+      "tools": ["docker", "kind", "kubectl"],
+      "resources": ["01_Weeks/26CS52B1E_Lab_Workbook_week1.pdf"]
+    },
+    {
+      "n": 2,
+      "co": "CO1",
+      "topic": "Trace 'kubectl create deployment' end to end using events, etcdctl, crictl and kubelet logs",
+      "outcome": "Match each event in the cluster to the component that caused it.",
+      "story": "We type `kubectl create deployment` in one second, and a container appears. Have you ever wondered what actually happened in between? Here we follow a single Deployment like a detective, watching the HTTP POST hit kube-apiserver, reading the raw key inside etcd, checking the Pod sandbox with crictl, and even forcing a 409 Conflict to see optimistic concurrency in action.",
+      "storyArc": {
+        "beat": "Chapter 2: Behind the Scenes",
+        "hook": "Teammate: \"We ran kubectl create deployment and containers appeared, which component actually did what, and how does Kubernetes stop two edits from colliding?\"",
+        "break": "Treating Kubernetes like a black box makes debugging control-plane delays or 409 Conflict errors a guessing game.",
+        "fix": "Trace one Deployment end to end using -v=6 HTTP logs, cluster events, etcdctl, crictl, kubelet journalctl, and iptables.",
+        "verify": "Collect proof of every handoff (API Server → etcd → Controllers → Scheduler → Kubelet) and trigger a real 409 Conflict."
+      },
+      "tools": ["docker", "kind", "kubectl"],
+      "resources": ["01_Weeks/26CS52B1E_Lab_Workbook_week2.pdf", "01_Weeks/26CS52B1E_Lab_Workbook_week2.docx"]
+    },
+    {
+      "n": 3,
+      "co": "CO1",
+      "topic": "Write a first controller with client-go: informer, work queue and reconcile of a deleted object",
+      "outcome": "Run a client-go controller that heals a deleted object and catches up after a restart.",
+      "story": "In Lab 2 we watched Kubernetes' built-in controllers do their job. Today we build our own in Go with client-go. We start with a simple rule, every labelled Namespace gets a ConfigMap, and then test our own code by deleting objects, stopping the controller mid-work, running two copies at once, and discovering what happens when a label is removed.",
+      "storyArc": {
+        "beat": "Chapter 3: Teaching Kubernetes a New Rule",
+        "hook": "Teammate: \"Every time we create a team namespace, someone forgets to add the welcome ConfigMap, can Kubernetes create and heal it automatically?\"",
+        "break": "Manual setup drifts the moment someone deletes a ConfigMap or creates a namespace while automation is offline.",
+        "fix": "Write a Go controller using client-go informers, a rate-limiting work queue, and an idempotent reconcile() loop, plus cleanup on label removal.",
+        "verify": "Delete the ConfigMap, restart after downtime, run two controllers at once, and unlabel a namespace to verify cleanup."
+      },
+      "tools": ["docker", "kind", "kubectl", "go"],
+      "resources": ["01_Weeks/Experiment3_PreLab.docx", "01_Weeks/Experiment3_main_go-Explanation.docx", "01_Weeks/Experiment3_PostLab_Tasks.docx"]
+    },
+    {
+      "n": 4,
+      "co": "CO1",
+      "topic": "Read the scheduler source, list default plugins and diagnose Pending Pods from FailedScheduling events",
+      "outcome": "Trace a scheduling failure message to the plugin and source line that caused it.",
+      "story": "Everyone hits a stuck `Pending` Pod eventually. Instead of guessing what went wrong, we sparse-clone the real Kubernetes v1.37.0 scheduler source code, find the exact Filter and Score plugins, and then intentionally break scheduling five different ways so we can trace every `FailedScheduling` message straight back to the Go code that wrote it.",
+      "storyArc": {
+        "beat": "Chapter 4: The 2 AM Pending Pod Mystery",
+        "hook": "Pager alert: \"New Pods are stuck Pending in the cluster! Is it out of CPU, missing a disk label, tainted, port-conflicted, or cordoned?\"",
+        "break": "A Pending Pod sits idle with no node assigned until you read its Events and understand which scheduler filter rejected it.",
+        "fix": "Inspect Kubernetes v1.37.0 kube-scheduler source code, reproduce all 5 failure modes, and resolve each constraint (label, toleration, uncordon).",
+        "verify": "Match every FailedScheduling event to its exact plugin in Go and confirm Pods recover to Running once fixed."
+      },
+      "tools": ["docker", "kind", "kubectl", "go"],
+      "resources": ["01_Weeks/Experiment4_PreLab_Notes.docx", "01_Weeks/Experiment4_Scheduler_Lab_Record.docx"]
+    },
+    { "n": 5, "co": "CO2", "topic": "Scaffold the Website operator with kubebuilder; generate CRD YAML from Go types", "outcome": "Scaffold an operator project and generate its CRD with make manifests.", "tools": ["docker", "kind", "kubectl", "go", "kubebuilder"] },
+    { "n": 6, "co": "CO2", "topic": "Implement Reconcile for the Website operator and deploy it to kind with RBAC", "outcome": "Build a working operator that recreates and cleans up its child objects.", "tools": ["docker", "kind", "kubectl", "go", "kubebuilder"] },
+    { "n": 7, "co": "CO2", "topic": "Add status conditions and a finalizer to the operator; verify clean-up on delete", "outcome": "Verify status conditions and finalizer-based clean-up of an operator.", "tools": ["docker", "kind", "kubectl", "go", "kubebuilder"] },
+    { "n": 8, "co": "CO2", "topic": "Test, measure and package the operator: envtest, custom metrics, install.yaml and Helm chart", "outcome": "Evaluate an operator with tests and metrics and package it for installation.", "tools": ["docker", "kind", "kubectl", "go", "kubebuilder", "helm"] },
+    { "n": 9, "co": "CO3", "topic": "Add OpenAPI schema, CEL rules and the scale subresource to the Website CRD", "outcome": "Add schema and CEL validation to a CRD and show each rule rejecting bad input.", "tools": ["docker", "kind", "kubectl", "go", "kubebuilder"] },
+    { "n": 10, "co": "CO3", "topic": "Defaulting and validating webhooks for Websites with cert-manager", "outcome": "Deploy defaulting and validating webhooks and explain their failure behaviour.", "tools": ["docker", "kind", "kubectl", "go", "kubebuilder", "helm"] },
+    { "n": 11, "co": "CO3", "topic": "Add Website v1beta1 with a conversion webhook; run round-trip tests and find a planted bug", "outcome": "Judge whether a conversion is lossless using round-trip tests.", "tools": ["docker", "kind", "kubectl", "go", "kubebuilder"] },
+    { "n": 12, "co": "CO3", "topic": "Check API changes with oasdiff, migrate stored versions and ship the CRD as a Helm chart (CO3 artifact)", "outcome": "Ship a multi-version, validated CRD with conversion as a Helm chart.", "tools": ["docker", "kind", "kubectl", "go", "kubebuilder", "helm"] },
+    { "n": 13, "co": "CO4", "topic": "Set up a Cluster API management cluster and create a ClusterClass-based workload cluster", "outcome": "Create a workload cluster with Cluster API and the Docker provider.", "tools": ["docker", "kind", "kubectl", "clusterctl"] },
+    { "n": 14, "co": "CO4", "topic": "Run a 3-cluster fleet: create, scale, rolling upgrade and machine remediation", "outcome": "Scale, upgrade and heal clusters in a fleet with Cluster API.", "tools": ["docker", "kind", "kubectl", "clusterctl"] },
+    { "n": 15, "co": "CO4", "topic": "Federate a workload across two clusters with Karmada: weighted replicas and overrides", "outcome": "Divide replicas across clusters and apply per-cluster overrides with Karmada.", "tools": ["docker", "kind", "kubectl", "helm"] },
+    { "n": 16, "co": "CO4", "topic": "Cross-cluster traffic with Cilium Cluster Mesh, failover with Karmada, and a vCluster tenant", "outcome": "Analyse cross-cluster traffic, failover and virtual cluster behaviour from real output.", "tools": ["docker", "kind", "kubectl", "helm"] },
+    { "n": 17, "co": "CO5", "topic": "Build a Database platform API with a Crossplane XRD and Composition", "outcome": "Create a platform API with Crossplane and provision a database through it.", "tools": ["docker", "kind", "kubectl", "helm"] },
+    { "n": 18, "co": "CO5", "topic": "Select an RDS Composition for the same API and install a Kratix Promise", "outcome": "Compare Composition selection with a Kratix Promise for the same request.", "tools": ["docker", "kind", "kubectl", "helm"] },
+    { "n": 19, "co": "CO5", "topic": "Just-in-time nodes with Karpenter on kind (KWOK): NodePools, NodeClaims, limits and budgets", "outcome": "Predict and verify Karpenter's node decisions for a NodePool.", "tools": ["docker", "kind", "kubectl", "helm"] },
+    { "n": 20, "co": "CO5", "topic": "Event-driven scaling with KEDA and Karpenter; demonstrate the IaaS-via-Kubernetes flow (CO5 artifact)", "outcome": "Evaluate scaling from 0 to N and back for a queue-driven workload.", "tools": ["docker", "kind", "kubectl", "helm"] },
+    { "n": 21, "co": "CO6", "topic": "Stand up a Backstage developer portal and query the catalog REST API", "outcome": "Run a Backstage portal and query its catalog.", "tools": ["docker", "kind", "kubectl", "node"] },
+    { "n": 22, "co": "CO6", "topic": "Populate the software catalog with the trimester project, with TechDocs", "outcome": "Publish your own project in the catalog with relations and docs.", "tools": ["docker", "kind", "kubectl", "node"] },
+    { "n": 23, "co": "CO6", "topic": "Write a custom Backstage plugin: a 'Crossplane for this service' entity card", "outcome": "Build and test a frontend plugin that adds an entity card.", "tools": ["docker", "kind", "kubectl", "node"] },
+    { "n": 24, "co": "CO6", "topic": "Golden path with a custom scaffolder action; end-to-end self-service demo (CO6 artifact)", "outcome": "Create a golden-path template with a custom action and demonstrate self-service.", "tools": ["docker", "kind", "kubectl", "node"] }
+  ],
+  "links": [
+    { "label": "Kubernetes Documentation", "url": "https://kubernetes.io/docs/" },
+    { "label": "kind Quick Start", "url": "https://kind.sigs.k8s.io/docs/user/quick-start/" },
+    { "label": "kubectl Cheat Sheet (official)", "url": "https://kubernetes.io/docs/reference/kubectl/quick-reference/" },
+    { "label": "Kubebuilder Book", "url": "https://book.kubebuilder.io" },
+    { "label": "Kubernetes API Conventions", "url": "https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md" },
+    { "label": "Cluster API Book", "url": "https://cluster-api.sigs.k8s.io" },
+    { "label": "Karmada Docs", "url": "https://karmada.io/docs/" },
+    { "label": "Crossplane Docs", "url": "https://docs.crossplane.io" },
+    { "label": "Karpenter Docs", "url": "https://karpenter.sh/docs/" },
+    { "label": "Backstage Docs", "url": "https://backstage.io/docs/" }
+  ]
+}

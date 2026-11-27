@@ -1,0 +1,314 @@
+{
+  "os": [
+    {
+      "id": "mac",
+      "label": "macOS",
+      "shell": "bash",
+      "hint": "Uses Homebrew. Install it first from brew.sh if `brew` is missing."
+    },
+    {
+      "id": "windows",
+      "label": "Windows",
+      "shell": "powershell",
+      "hint": "Run PowerShell as Administrator. winget ships with Windows 10 (21H2+) and 11."
+    },
+    {
+      "id": "ubuntu",
+      "label": "Ubuntu / Debian",
+      "shell": "bash",
+      "hint": "Also works on Linux Mint, Pop!_OS and WSL2 Ubuntu."
+    },
+    {
+      "id": "fedora",
+      "label": "Fedora / RHEL",
+      "shell": "bash",
+      "hint": "Also works on Rocky, AlmaLinux and CentOS Stream (see the RHEL notes)."
+    },
+    {
+      "id": "arch",
+      "label": "Arch Linux",
+      "shell": "bash",
+      "hint": "Also works on Manjaro and EndeavourOS."
+    }
+  ],
+  "tools": [
+    {
+      "id": "docker",
+      "name": "Docker",
+      "what": "Container runtime. kind runs every Kubernetes node as a Docker container, so Docker must be running before anything else.",
+      "verify": "docker run hello-world",
+      "steps": {
+        "mac": [
+          {
+            "code": "brew install --cask docker\nopen -a Docker",
+            "note": "Wait for the whale icon in the menu bar to stop animating before running docker commands."
+          }
+        ],
+        "windows": [
+          {
+            "title": "1. Enable WSL2 (once, then reboot)",
+            "code": "wsl --install"
+          },
+          {
+            "title": "2. Install Docker Desktop",
+            "code": "winget install -e --id Docker.DockerDesktop",
+            "note": "Start Docker Desktop from the Start menu and keep \"Use the WSL 2 based engine\" checked in Settings → General."
+          }
+        ],
+        "ubuntu": [
+          {
+            "code": "curl -fsSL https://get.docker.com | sudo sh\nsudo usermod -aG docker $USER\nnewgrp docker",
+            "note": "The script adds Docker's official apt repo. Log out and back in if `docker ps` still says permission denied."
+          }
+        ],
+        "fedora": [
+          {
+            "code": "sudo dnf -y install dnf-plugins-core\nsudo dnf config-manager addrepo --from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo\nsudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin\nsudo systemctl enable --now docker\nsudo usermod -aG docker $USER && newgrp docker",
+            "note": "On RHEL / Rocky / Alma use `sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo` for the repo line."
+          }
+        ],
+        "arch": [
+          {
+            "code": "sudo pacman -S --needed docker\nsudo systemctl enable --now docker\nsudo usermod -aG docker $USER && newgrp docker"
+          }
+        ]
+      }
+    },
+    {
+      "id": "kind",
+      "name": "kind",
+      "what": "Kubernetes IN Docker. Creates single- or multi-node clusters on your laptop in about a minute.",
+      "verify": "kind version",
+      "steps": {
+        "mac": [
+          {
+            "code": "brew install kind"
+          }
+        ],
+        "windows": [
+          {
+            "code": "winget install -e --id Kubernetes.kind",
+            "note": "Alternative with Chocolatey: `choco install kind`. Open a new terminal afterwards so PATH refreshes."
+          }
+        ],
+        "ubuntu": [
+          {
+            "code": "ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')\ncurl -Lo ./kind \"https://github.com/kubernetes-sigs/kind/releases/latest/download/kind-linux-${ARCH}\"\nsudo install -m 0755 kind /usr/local/bin/kind && rm kind"
+          }
+        ],
+        "fedora": [
+          {
+            "code": "ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')\ncurl -Lo ./kind \"https://github.com/kubernetes-sigs/kind/releases/latest/download/kind-linux-${ARCH}\"\nsudo install -m 0755 kind /usr/local/bin/kind && rm kind"
+          }
+        ],
+        "arch": [
+          {
+            "code": "sudo pacman -S --needed kind",
+            "note": "If your mirror lacks it, use the generic binary from the Ubuntu tab or `go install sigs.k8s.io/kind@latest`."
+          }
+        ]
+      }
+    },
+    {
+      "id": "kubectl",
+      "name": "kubectl",
+      "what": "The Kubernetes command-line client. Every lab talks to the cluster through it.",
+      "verify": "kubectl version --client",
+      "steps": {
+        "mac": [
+          {
+            "code": "brew install kubectl"
+          }
+        ],
+        "windows": [
+          {
+            "code": "winget install -e --id Kubernetes.kubectl",
+            "note": "Alternative with Chocolatey: `choco install kubernetes-cli`."
+          }
+        ],
+        "ubuntu": [
+          {
+            "code": "ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')\ncurl -LO \"https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/${ARCH}/kubectl\"\nsudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && rm kubectl"
+          }
+        ],
+        "fedora": [
+          {
+            "code": "ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')\ncurl -LO \"https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/${ARCH}/kubectl\"\nsudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && rm kubectl"
+          }
+        ],
+        "arch": [
+          {
+            "code": "sudo pacman -S --needed kubectl"
+          }
+        ]
+      }
+    },
+    {
+      "id": "go",
+      "name": "Go",
+      "what": "Needed to build controllers with client-go and operators with kubebuilder.",
+      "verify": "go version",
+      "steps": {
+        "mac": [
+          {
+            "code": "brew install go"
+          }
+        ],
+        "windows": [
+          {
+            "code": "winget install -e --id GoLang.Go"
+          }
+        ],
+        "ubuntu": [
+          {
+            "code": "ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')\nGO_VER=$(curl -s 'https://go.dev/VERSION?m=text' | head -n1)\ncurl -LO \"https://go.dev/dl/${GO_VER}.linux-${ARCH}.tar.gz\"\nsudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf \"${GO_VER}.linux-${ARCH}.tar.gz\"\necho 'export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin' >> ~/.bashrc && source ~/.bashrc",
+            "note": "The apt `golang` package is often several versions behind; client-go needs a recent Go."
+          }
+        ],
+        "fedora": [
+          {
+            "code": "sudo dnf install -y golang\necho 'export PATH=$PATH:$HOME/go/bin' >> ~/.bashrc && source ~/.bashrc"
+          }
+        ],
+        "arch": [
+          {
+            "code": "sudo pacman -S --needed go\necho 'export PATH=$PATH:$HOME/go/bin' >> ~/.bashrc && source ~/.bashrc"
+          }
+        ]
+      }
+    },
+    {
+      "id": "kubebuilder",
+      "name": "kubebuilder + make",
+      "what": "Scaffolds operators and generates CRD YAML from Go types. Needs Go and make.",
+      "verify": "kubebuilder version && make --version",
+      "steps": {
+        "mac": [
+          {
+            "code": "xcode-select --install   # provides make\nbrew install kubebuilder"
+          }
+        ],
+        "windows": [
+          {
+            "code": "wsl --install -d Ubuntu",
+            "note": "kubebuilder has no native Windows build. Open the Ubuntu (WSL2) terminal and follow the Ubuntu / Debian tab for Go, kubectl and kubebuilder. Docker Desktop's WSL integration lets WSL use the same Docker."
+          }
+        ],
+        "ubuntu": [
+          {
+            "code": "sudo apt-get update && sudo apt-get install -y make build-essential\ncurl -L -o kubebuilder \"https://go.kubebuilder.io/dl/latest/$(go env GOOS)/$(go env GOARCH)\"\nsudo install -m 0755 kubebuilder /usr/local/bin/kubebuilder && rm kubebuilder"
+          }
+        ],
+        "fedora": [
+          {
+            "code": "sudo dnf install -y make gcc\ncurl -L -o kubebuilder \"https://go.kubebuilder.io/dl/latest/$(go env GOOS)/$(go env GOARCH)\"\nsudo install -m 0755 kubebuilder /usr/local/bin/kubebuilder && rm kubebuilder"
+          }
+        ],
+        "arch": [
+          {
+            "code": "sudo pacman -S --needed base-devel\ncurl -L -o kubebuilder \"https://go.kubebuilder.io/dl/latest/$(go env GOOS)/$(go env GOARCH)\"\nsudo install -m 0755 kubebuilder /usr/local/bin/kubebuilder && rm kubebuilder"
+          }
+        ]
+      }
+    },
+    {
+      "id": "helm",
+      "name": "Helm",
+      "what": "Package manager for Kubernetes. Used to ship the operator and CRD as charts and to install cert-manager, Karmada, Crossplane, KEDA and more.",
+      "verify": "helm version",
+      "steps": {
+        "mac": [
+          {
+            "code": "brew install helm"
+          }
+        ],
+        "windows": [
+          {
+            "code": "winget install -e --id Helm.Helm"
+          }
+        ],
+        "ubuntu": [
+          {
+            "code": "curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash"
+          }
+        ],
+        "fedora": [
+          {
+            "code": "sudo dnf install -y helm"
+          }
+        ],
+        "arch": [
+          {
+            "code": "sudo pacman -S --needed helm"
+          }
+        ]
+      }
+    },
+    {
+      "id": "clusterctl",
+      "name": "clusterctl",
+      "what": "Cluster API CLI for creating and managing workload clusters across a fleet.",
+      "verify": "clusterctl version",
+      "steps": {
+        "mac": [
+          {
+            "code": "brew install clusterctl"
+          }
+        ],
+        "windows": [
+          {
+            "code": "curl.exe -L https://github.com/kubernetes-sigs/cluster-api/releases/latest/download/clusterctl-windows-amd64.exe -o clusterctl.exe\nMove-Item .\\clusterctl.exe \"$env:LOCALAPPDATA\\Microsoft\\WindowsApps\\clusterctl.exe\""
+          }
+        ],
+        "ubuntu": [
+          {
+            "code": "ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')\ncurl -L -o clusterctl \"https://github.com/kubernetes-sigs/cluster-api/releases/latest/download/clusterctl-linux-${ARCH}\"\nsudo install -m 0755 clusterctl /usr/local/bin/clusterctl && rm clusterctl"
+          }
+        ],
+        "fedora": [
+          {
+            "code": "ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')\ncurl -L -o clusterctl \"https://github.com/kubernetes-sigs/cluster-api/releases/latest/download/clusterctl-linux-${ARCH}\"\nsudo install -m 0755 clusterctl /usr/local/bin/clusterctl && rm clusterctl"
+          }
+        ],
+        "arch": [
+          {
+            "code": "ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')\ncurl -L -o clusterctl \"https://github.com/kubernetes-sigs/cluster-api/releases/latest/download/clusterctl-linux-${ARCH}\"\nsudo install -m 0755 clusterctl /usr/local/bin/clusterctl && rm clusterctl"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node",
+      "name": "Node.js LTS + Yarn",
+      "what": "Backstage, the developer portal, is a Node.js app. Use an LTS release and enable Yarn through corepack.",
+      "verify": "node --version && yarn --version",
+      "steps": {
+        "mac": [
+          {
+            "code": "brew install node@22\ncorepack enable"
+          }
+        ],
+        "windows": [
+          {
+            "code": "winget install -e --id OpenJS.NodeJS.LTS\ncorepack enable"
+          }
+        ],
+        "ubuntu": [
+          {
+            "code": "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash\nsource ~/.bashrc\nnvm install --lts\ncorepack enable"
+          }
+        ],
+        "fedora": [
+          {
+            "code": "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash\nsource ~/.bashrc\nnvm install --lts\ncorepack enable"
+          }
+        ],
+        "arch": [
+          {
+            "code": "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash\nsource ~/.bashrc\nnvm install --lts\ncorepack enable"
+          }
+        ]
+      }
+    }
+  ]
+}
