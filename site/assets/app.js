@@ -356,13 +356,12 @@
     updateProg();
   }
 
-  /* screenshot loading & error fallback + lightbox with aria-busy */
+  /* screenshot loading skeleton & error fallback + lightbox with aria-busy */
   document.querySelectorAll('.shot img').forEach((im) => {
     const fig = im.closest('.shot');
     if (!fig) return;
-    if (!im.complete) fig.classList.add('is-loading');
-    im.addEventListener('load', () => fig.classList.remove('is-loading'));
-    im.addEventListener('error', () => {
+    const onLoad = () => fig.classList.remove('is-loading');
+    const onErr = () => {
       fig.classList.remove('is-loading');
       fig.classList.add('is-error');
       if (!fig.querySelector('.shot-err')) {
@@ -371,26 +370,48 @@
         p.textContent = 'Screenshot could not be loaded.';
         fig.appendChild(p);
       }
-    });
+    };
+    if (im.complete) {
+      if (im.naturalWidth === 0) onErr();
+      else onLoad();
+    } else {
+      fig.classList.add('is-loading');
+      im.addEventListener('load', onLoad, { once: true });
+      im.addEventListener('error', onErr, { once: true });
+    }
   });
 
   const box = document.querySelector('.lightbox');
   if (box) {
+    const stage = document.createElement('div');
+    stage.className = 'lightbox-stage';
     const img = new Image();
+    stage.appendChild(img);
     const cap = box.querySelector('p');
-    box.insertBefore(img, cap);
+    box.insertBefore(stage, cap);
     let opener = null;
-    const close = () => { box.hidden = true; box.removeAttribute('aria-busy'); document.body.style.overflow = ''; opener?.focus(); };
+    const close = () => {
+      box.hidden = true;
+      box.removeAttribute('aria-busy');
+      stage.classList.remove('is-error');
+      document.body.style.overflow = '';
+      opener?.focus();
+    };
     document.addEventListener('click', (e) => {
       const a = e.target.closest('a.zoom');
       if (!a) return;
       e.preventDefault();
       opener = a;
       const caption = a.dataset.caption || '';
+      stage.classList.remove('is-error');
       box.setAttribute('aria-busy', 'true');
       cap.textContent = 'Loading screenshot...';
       img.onload = () => { box.removeAttribute('aria-busy'); cap.textContent = caption; };
-      img.onerror = () => { box.removeAttribute('aria-busy'); cap.textContent = 'Screenshot could not be loaded.'; };
+      img.onerror = () => {
+        box.removeAttribute('aria-busy');
+        stage.classList.add('is-error');
+        cap.textContent = 'Screenshot could not be loaded.';
+      };
       img.src = a.getAttribute('href');
       img.alt = a.querySelector('img')?.alt || '';
       box.hidden = false;

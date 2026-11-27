@@ -232,8 +232,15 @@ td.tools a { display: inline-block; margin-right: var(--space-xs); }
 .shot figcaption { display: flex; justify-content: space-between; align-items: center; gap: var(--space-sm); padding: var(--space-xs) var(--space-md); border-bottom: var(--rule-hair) solid var(--color-rule); background: var(--color-paper-2); color: var(--color-ink-2); font-size: var(--text-xs); }
 .shot-when strong { color: var(--color-ink); font-weight: 500; }
 .shot-hint { color: var(--color-muted); font-family: var(--font-outlier); white-space: nowrap; }
-.shot a { display: block; cursor: zoom-in; }
-.shot img { display: block; width: 100%; max-height: 520px; object-fit: contain; object-position: left top; background: var(--color-graphite); }
+.shot a { position: relative; display: block; cursor: zoom-in; overflow: hidden; background: var(--color-graphite-2); }
+.shot img { display: block; width: 100%; height: auto; max-height: 520px; object-fit: contain; object-position: left top; background: var(--color-graphite); }
+.shot.is-loading a::after, .lightbox[aria-busy="true"] .lightbox-stage::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent 0%, color-mix(in oklab, var(--color-graphite-ink) 10%, transparent) 50%, transparent 100%); transform: translateX(-100%); animation: shimmer 1.4s var(--ease-in-out) infinite; pointer-events: none; }
+.shot.is-loading img, .lightbox[aria-busy="true"] .lightbox-stage img { opacity: 0; }
+@keyframes shimmer { to { transform: translateX(100%); } }
+.lightbox-stage { position: relative; overflow: hidden; min-width: min(80vw, 48rem); min-height: 16rem; display: grid; place-items: center; border-radius: var(--radius-card); background: var(--color-graphite-2); }
+.lightbox[aria-busy="false"] .lightbox-stage, .lightbox:not([aria-busy]) .lightbox-stage { min-width: 0; min-height: 0; background: transparent; }
+.lightbox-stage.is-error { min-width: min(80vw, 28rem); min-height: 10rem; border: var(--rule-hair) solid var(--color-error); }
+.lightbox-stage.is-error img { display: none; }
 
 .cmd-stack-body { display: grid; }
 .cmd-stack .cmd-line { border-radius: 0; border: 0; border-top: var(--rule-hair) solid var(--color-graphite-2); }
@@ -539,14 +546,14 @@ td.tools a { display: inline-block; margin-right: var(--space-xs); }
 @media (prefers-reduced-motion: reduce) {
   .caret { animation: none; }
   .key, .tray button, .copy, .chip, .node, .lesson { transition: none; }
+  .shot.is-loading a::after, .lightbox[aria-busy="true"] .lightbox-stage::after { animation: none; }
   .js .hero-session.is-running .ln:not(.shown) { visibility: visible; }
   .js .hero-diagram.is-running .node-card:not(.lit) { opacity: 1; border-color: var(--color-accent-2); }
 }
 
 .copy.err { color: var(--color-error); border-color: var(--color-error); }
-.shot.is-loading img { opacity: 0.45; }
 .shot.is-error a { display: none; }
-.shot-err { margin: 0; padding: var(--space-md); color: var(--color-error); font-size: var(--text-sm); }
+.shot-err { margin: 0; padding: var(--space-md); background: var(--color-paper); color: var(--color-error); font-size: var(--text-sm); border-top: var(--rule-hair) solid var(--color-error); }
 .toc-box .toc a.active { color: var(--color-accent-deep); font-weight: 500; text-decoration: underline; }
 .back-top { margin: var(--space-xl) 0 var(--space-md); }
 .empty p { margin: 0 0 var(--space-sm); }

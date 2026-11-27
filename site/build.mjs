@@ -183,10 +183,11 @@ function renderMarkdown(md, labDir) {
         return codeBlock(text, lang);
       },
       image({ href, text }) {
-        const src = rewriteAsset(href, labDir);
+        const { src, w, h } = rewriteAsset(href, labDir);
         const cap = prettyCaption(text);
         const shotName = prettyShotName(href, text);
-        return `<figure class="shot"><figcaption><span class="shot-when">Take screenshot: <strong>${esc(shotName)}</strong></span><span class="shot-hint">Click to zoom</span></figcaption><a href="${src}" class="zoom" data-caption="${escAttr(`${shotName}: ${cap}`)}"><img loading="lazy" decoding="async" src="${src}" alt="${escAttr(cap)}"></a></figure>`;
+        const dims = w && h ? ` width="${w}" height="${h}"` : '';
+        return `<figure class="shot"><figcaption><span class="shot-when">Take screenshot: <strong>${esc(shotName)}</strong></span><span class="shot-hint">Click to zoom</span></figcaption><a href="${src}" class="zoom" data-caption="${escAttr(`${shotName}: ${cap}`)}"><img loading="lazy" decoding="async"${dims} src="${src}" alt="${escAttr(cap)}"></a></figure>`;
       },
       link({ href, title, tokens }) {
         const inner = this.parser.parseInline(tokens);
@@ -251,19 +252,34 @@ function codeBlock(text, lang = '', file = '') {
   return `<div class="well code${kind}"><div class="well-head"><span>${esc(label)}</span>${copyButton(null)}</div><pre><code class="hljs">${body}</code></pre></div>`;
 }
 
+function pngDimensions(filePath) {
+  try {
+    const fd = fs.openSync(filePath, 'r');
+    const buf = Buffer.alloc(24);
+    const n = fs.readSync(fd, buf, 0, 24, 0);
+    fs.closeSync(fd);
+    if (n >= 24 && buf.toString('ascii', 1, 4) === 'PNG') {
+      return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) };
+    }
+  } catch { /* ignore */ }
+  return { w: 0, h: 0 };
+}
+
 function rewriteAsset(href, labDir) {
-  if (/^https?:/.test(href)) return href;
+  if (/^https?:/.test(href)) return { src: href, w: 0, h: 0 };
   const decoded = decodeURI(href);
   const repoRel = path.posix.normalize(path.posix.join(labDir, decoded));
   const src = path.join(REPO_ROOT, repoRel);
+  let dims = { w: 0, h: 0 };
   if (fs.existsSync(src)) {
     const dest = path.join(OUT, 'labs', repoRel);
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.copyFileSync(src, dest);
+    dims = pngDimensions(src);
   } else {
     console.warn(`  ! missing image ${repoRel}`);
   }
-  return repoRel.split('/').map(encodeURIComponent).join('/');
+  return { src: repoRel.split('/').map(encodeURIComponent).join('/'), ...dims };
 }
 
 function rewriteLink(href, labDir) {
