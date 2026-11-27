@@ -102,10 +102,10 @@
   const HERO_SCENARIOS = {
     boot: [
       { t: 'cmd', text: 'kind create cluster --config kind-3node.yaml' },
-      { t: 'out', text: 'Creating cluster "klu" ...' },
-      { t: 'out', text: ' ok  Preparing nodes' },
-      { t: 'out', text: ' ok  Starting control-plane', light: 'cp' },
-      { t: 'out', text: ' ok  Joining worker nodes' },
+      { t: 'out', text: 'Creating cluster "klu" ...', nodeState: { cp: 'NotReady', w1: 'NotReady', w2: 'NotReady' } },
+      { t: 'out', text: ' ok  Preparing nodes', nodeState: { cp: 'NotReady', w1: 'NotReady', w2: 'NotReady' } },
+      { t: 'out', text: ' ok  Starting control-plane', light: 'cp', nodeState: { cp: 'Ready' } },
+      { t: 'out', text: ' ok  Joining worker nodes', light: 'w1,w2', wires: true, nodeState: { w1: 'Ready', w2: 'Ready' } },
       { t: 'out', text: 'Set kubectl context to "kind-klu"' },
       { t: 'gap' },
       { t: 'cmd', text: 'kubectl get nodes' },
@@ -115,24 +115,28 @@
       { t: 'out', text: 'klu-worker2         Ready    <none>', light: 'w2', ready: true },
     ],
     deploy: [
-      { t: 'cmd', text: 'kubectl create deployment web --image=nginx --replicas=3' },
-      { t: 'out', text: 'deployment.apps/web created', light: 'cp' },
+      { t: 'cmd', text: 'kubectl apply -f web.yaml' },
+      { t: 'out', text: 'deployment.apps/web created', light: 'cp', rs: '0/3 Pending' },
+      { t: 'out', text: 'replicaset.apps/web-6d8f scaled to 3', rs: '0/3 Pending', setPods: { w1: [['web-9xk2p', 'pending'], ['web-7t2vn', 'pending']], w2: [['web-4m7qr', 'pending']] } },
+      { t: 'out', text: 'scheduler assigned Pods to workers -> starting containers', wires: true, rs: '0/3 Creating', setPods: { w1: [['web-9xk2p', 'creating'], ['web-7t2vn', 'creating']], w2: [['web-4m7qr', 'creating']] } },
       { t: 'gap' },
       { t: 'cmd', text: 'kubectl get pods -o wide' },
-      { t: 'out', text: 'NAME                   READY   STATUS    NODE' },
-      { t: 'out', text: 'web-6d8f-9xk2p         1/1     Running   klu-worker', light: 'w1', addPod: ['w1', 'web-9xk2p', 'ok'], ready: true },
-      { t: 'out', text: 'web-6d8f-4m7qr         1/1     Running   klu-worker2', light: 'w2', addPod: ['w2', 'web-4m7qr', 'ok'], ready: true },
-      { t: 'out', text: 'web-6d8f-7t2vn         1/1     Running   klu-worker', light: 'w1', addPod: ['w1', 'web-7t2vn', 'ok'], ready: true },
+      { t: 'out', text: 'NAME         READY   STATUS    NODE' },
+      { t: 'out', text: 'web-9xk2p    1/1     Running   klu-worker', podState: ['w1', 'web-9xk2p', 'ok'], rs: '1/3 Ready', ready: true },
+      { t: 'out', text: 'web-4m7qr    1/1     Running   klu-worker2', podState: ['w2', 'web-4m7qr', 'ok'], rs: '2/3 Ready', ready: true },
+      { t: 'out', text: 'web-7t2vn    1/1     Running   klu-worker', podState: ['w1', 'web-7t2vn', 'ok'], rs: '3/3 Ready', ready: true },
     ],
     heal: [
-      { t: 'cmd', text: 'kubectl delete pod web-6d8f-9xk2p' },
-      { t: 'out', text: 'pod "web-6d8f-9xk2p" deleted', light: 'w1', killPod: ['w1', 'web-9xk2p'] },
+      { t: 'cmd', text: 'kubectl delete pod web-9xk2p' },
+      { t: 'out', text: 'pod "web-9xk2p" deleted', podState: ['w1', 'web-9xk2p', 'dead'], rs: '2/3 Ready' },
+      { t: 'out', text: 'ReplicaSet web-6d8f saw 2/3 -> creating web-8p4lz', light: 'cp', removePod: ['w1', 'web-9xk2p'], addPod: ['w2', 'web-8p4lz', 'pending'], rs: '2/3 Pending' },
+      { t: 'out', text: 'scheduler placed web-8p4lz on klu-worker2 (example)', wires: true, podState: ['w2', 'web-8p4lz', 'creating'], rs: '2/3 Creating' },
       { t: 'gap' },
       { t: 'cmd', text: 'kubectl get pods -o wide' },
-      { t: 'out', text: 'ReplicaSet saw 2/3 -> scheduling replacement', light: 'cp' },
-      { t: 'out', text: 'web-6d8f-8p4lz         1/1     Running   klu-worker2', light: 'w2', addPod: ['w2', 'web-8p4lz', 'new'], ready: true },
-      { t: 'out', text: 'web-6d8f-4m7qr         1/1     Running   klu-worker2', light: 'w2', ready: true },
-      { t: 'out', text: 'web-6d8f-7t2vn         1/1     Running   klu-worker', light: 'w1', ready: true },
+      { t: 'out', text: 'NAME         READY   STATUS    NODE' },
+      { t: 'out', text: 'web-8p4lz    1/1     Running   klu-worker2', podState: ['w2', 'web-8p4lz', 'ok'], rs: '3/3 Ready', ready: true },
+      { t: 'out', text: 'web-4m7qr    1/1     Running   klu-worker2', ready: true },
+      { t: 'out', text: 'web-7t2vn    1/1     Running   klu-worker', ready: true },
     ],
   };
 
@@ -141,58 +145,95 @@
     const HERO_POD_SVG = '<svg class="k8s-hex" viewBox="0 0 40 40" width="18" height="18" aria-hidden="true"><polygon points="20,2 34,9 38,24 28,36 12,36 2,24 6,9" fill="currentColor"/><polygon points="20,10 29,15 29,25 20,30 11,25 11,15" fill="none" stroke="#fff" stroke-width="2"/><path d="M11 15l9 5 9-5M20 20v10" stroke="#fff" stroke-width="1.8"/></svg>';
     const w1Pods = diagram.querySelector('[data-node-pods="w1"]');
     const w2Pods = diagram.querySelector('[data-node-pods="w2"]');
+    const wiresEl = diagram.querySelector('[data-node-wires]');
+    const ctrlChain = diagram.querySelector('[data-ctrl-chain]');
+    const rsCount = diagram.querySelector('[data-rs-count]');
     const podState = { w1: [], w2: [] };
+    const defaultRoles = { cp: 'control-plane', w1: 'worker', w2: 'worker' };
+
     const syncPods = () => {
       const render = (list) => list.map((p) => `<span class="hero-pod is-${p.st}">${HERO_POD_SVG}<span>${p.name}</span></span>`).join('');
       if (w1Pods) w1Pods.innerHTML = render(podState.w1);
       if (w2Pods) w2Pods.innerHTML = render(podState.w2);
     };
 
+    const setNodeRole = (id, label) => {
+      const roleEl = diagram.querySelector(`[data-node-role="${id}"]`);
+      const card = diagram.querySelector(`[data-node="${id}"]`);
+      if (roleEl) roleEl.textContent = label;
+      if (card) card.classList.toggle('is-notready', label === 'NotReady');
+    };
+
+    const light = (ids) => ids.split(',').forEach((id) => diagram.querySelector(`[data-node="${id}"]`)?.classList.add('lit'));
+
     const renderScenario = (key) => {
       const items = HERO_SCENARIOS[key] || HERO_SCENARIOS.boot;
-      session.innerHTML = items.map((l) => {
+      session.innerHTML = items.map((l, idx) => {
         if (l.t === 'gap') return '<span class="ln ln-gap"> </span>';
-        const attrs = [
-          l.light ? ` data-light="${l.light}"` : '',
-          l.addPod ? ` data-add-pod="${l.addPod.join(',')}"` : '',
-          l.killPod ? ` data-kill-pod="${l.killPod.join(',')}"` : '',
-        ].join('');
-        if (l.t === 'cmd') return `<span class="ln ln-cmd"${attrs}><span class="ps">$ </span><span class="typed" data-full="${l.text.replace(/"/g, '&quot;')}">${l.text}</span></span>`;
-        return `<span class="ln ln-out${l.ready ? ' ready' : ''}"${attrs}>${l.text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`;
+        const cls = l.t === 'cmd' ? 'ln ln-cmd' : `ln ln-out${l.ready ? ' ready' : ''}`;
+        if (l.t === 'cmd') return `<span class="${cls}" data-step="${idx}"><span class="ps">$ </span><span class="typed" data-full="${l.text.replace(/"/g, '&quot;')}">${l.text}</span></span>`;
+        return `<span class="${cls}" data-step="${idx}">${l.text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`;
       }).join('') + '<span class="caret" aria-hidden="true"> </span>';
     };
 
-    const light = (id) => diagram.querySelectorAll(`[data-node="${id}"]`).forEach((n) => n.classList.add('lit'));
-    const applyStepEffect = (ln) => {
-      if (ln.dataset.light) light(ln.dataset.light);
-      if (ln.dataset.addPod) {
-        const [w, name, st] = ln.dataset.addPod.split(',');
+    const applyStepEffect = (step) => {
+      if (!step) return;
+      if (step.light) light(step.light);
+      if (step.wires && wiresEl) wiresEl.classList.add('is-active');
+      if (step.nodeState) Object.entries(step.nodeState).forEach(([k, v]) => setNodeRole(k, v));
+      if (step.rs && rsCount) rsCount.textContent = step.rs;
+      if (step.setPods) {
+        podState.w1 = step.setPods.w1.map(([name, st]) => ({ name, st }));
+        podState.w2 = step.setPods.w2.map(([name, st]) => ({ name, st }));
+        syncPods();
+      }
+      if (step.removePod) {
+        const [w, name] = step.removePod;
+        podState[w] = podState[w].filter((p) => p.name !== name);
+        syncPods();
+      }
+      if (step.addPod) {
+        const [w, name, st] = step.addPod;
         if (!podState[w].some((p) => p.name === name)) podState[w].push({ name, st });
         syncPods();
       }
-      if (ln.dataset.killPod) {
-        const [w, name] = ln.dataset.killPod.split(',');
+      if (step.podState) {
+        const [w, name, st] = step.podState;
         const target = podState[w].find((p) => p.name === name);
-        if (target) target.st = 'dead';
+        if (target) target.st = st;
         syncPods();
       }
     };
 
     const run = async (key = 'boot') => {
       const id = ++runId;
+      const steps = HERO_SCENARIOS[key] || HERO_SCENARIOS.boot;
       renderScenario(key);
+      if (wiresEl) wiresEl.classList.remove('is-active');
+      if (ctrlChain) ctrlChain.hidden = key === 'boot';
+      if (rsCount) rsCount.textContent = key === 'heal' ? '3/3 Ready' : '0/3';
+      diagram.querySelectorAll('[data-node]').forEach((n) => n.classList.remove('lit', 'is-notready'));
+      if (key === 'boot') {
+        Object.entries(defaultRoles).forEach(([k, v]) => setNodeRole(k, v));
+      } else {
+        light('cp,w1,w2');
+        if (wiresEl) wiresEl.classList.add('is-active');
+        setNodeRole('cp', 'Ready'); setNodeRole('w1', 'Ready'); setNodeRole('w2', 'Ready');
+      }
       podState.w1 = key === 'heal' ? [{ name: 'web-9xk2p', st: 'ok' }, { name: 'web-7t2vn', st: 'ok' }] : [];
       podState.w2 = key === 'heal' ? [{ name: 'web-4m7qr', st: 'ok' }] : [];
       syncPods();
+
       const lines = [...session.querySelectorAll('.ln')];
       if (reduced) {
-        lines.forEach((ln) => { ln.classList.add('shown'); applyStepEffect(ln); });
+        lines.forEach((ln) => {
+          ln.classList.add('shown');
+          if (ln.dataset.step != null) applyStepEffect(steps[Number(ln.dataset.step)]);
+        });
         if (replayBtn) replayBtn.hidden = false;
         return;
       }
       if (replayBtn) replayBtn.hidden = true;
-      diagram.querySelectorAll('[data-node]').forEach((n) => n.classList.remove('lit'));
-      if (key !== 'boot') { light('cp'); light('w1'); light('w2'); }
       session.classList.add('is-running');
       diagram.classList.add('is-running');
       const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -211,9 +252,10 @@
           await wait(180);
         } else {
           ln.classList.add('shown');
-          await wait(ln.classList.contains('ln-gap') ? 80 : 120);
+          await wait(ln.classList.contains('ln-gap') ? 90 : 200);
         }
-        applyStepEffect(ln);
+        if (id !== runId) return;
+        if (ln.dataset.step != null) applyStepEffect(steps[Number(ln.dataset.step)]);
       }
       if (id === runId && replayBtn) replayBtn.hidden = false;
     };

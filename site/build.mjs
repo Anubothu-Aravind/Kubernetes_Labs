@@ -588,20 +588,21 @@ const K8S_ICONS = {
 function clusterDiagram() {
   return `
   <div class="node-card node-cp node" data-node="cp">
-    <div class="node-head"><span class="node-id">${K8S_ICONS.cp}<strong>klu-control-plane</strong></span><span class="node-role">control-plane</span></div>
+    <div class="node-head"><span class="node-id">${K8S_ICONS.cp}<strong>klu-control-plane</strong></span><span class="node-role" data-node-role="cp">control-plane</span></div>
     <div class="node-pills"><span>kube-apiserver</span><span>etcd</span><span>scheduler</span><span>controllers</span></div>
+    <div class="ctrl-chain" data-ctrl-chain hidden><span>Deployment/web</span><span aria-hidden="true">→</span><span>ReplicaSet/web-6d8f</span><strong data-rs-count>0/3</strong></div>
   </div>
-  <svg class="node-wires" viewBox="0 0 260 32" aria-hidden="true" preserveAspectRatio="none">
+  <svg class="node-wires" data-node-wires viewBox="0 0 260 32" aria-hidden="true" preserveAspectRatio="none">
     <path d="M130 0 V14 M58 14 H202 M58 14 V32 M202 14 V32" fill="none" stroke="currentColor" stroke-width="1.5"/>
   </svg>
   <div class="node-workers">
     <div class="node-card node" data-node="w1">
-      <div class="node-head"><span class="node-id">${K8S_ICONS.node}<strong>klu-worker</strong></span><span class="node-role">worker</span></div>
+      <div class="node-head"><span class="node-id">${K8S_ICONS.node}<strong>klu-worker</strong></span><span class="node-role" data-node-role="w1">worker</span></div>
       <div class="node-pills"><span>kubelet</span><span>pods</span></div>
       <div class="node-pods" data-node-pods="w1"></div>
     </div>
     <div class="node-card node" data-node="w2">
-      <div class="node-head"><span class="node-id">${K8S_ICONS.node}<strong>klu-worker2</strong></span><span class="node-role">worker</span></div>
+      <div class="node-head"><span class="node-id">${K8S_ICONS.node}<strong>klu-worker2</strong></span><span class="node-role" data-node-role="w2">worker</span></div>
       <div class="node-pills"><span>kubelet</span><span>pods</span></div>
       <div class="node-pods" data-node-pods="w2"></div>
     </div>
