@@ -6,18 +6,22 @@
     set(k, v) { try { localStorage.setItem(k, v); } catch { /* storage blocked */ } },
   };
 
-  /* copy buttons: icon turns into a tick for 1.4s */
+  /* copy buttons: icon turns into a tick for 1.4s, or shows error on failure */
   document.addEventListener('click', async (e) => {
     const btn = e.target.closest('.copy');
     if (!btn) return;
     const text = btn.dataset.copy ?? btn.closest('.well')?.querySelector('code')?.innerText ?? '';
     try {
+      if (!navigator.clipboard) throw new Error('Clipboard unavailable');
       await navigator.clipboard.writeText(text.replace(/\n$/, ''));
+      btn.classList.remove('err');
       btn.classList.add('done');
       btn.setAttribute('aria-label', 'Copied');
       setTimeout(() => { btn.classList.remove('done'); btn.setAttribute('aria-label', 'Copy to clipboard'); }, 1400);
     } catch {
-      btn.setAttribute('aria-label', 'Copy failed: select the text and press Ctrl+C');
+      btn.classList.add('err');
+      btn.setAttribute('aria-label', 'Copy failed');
+      setTimeout(() => { btn.classList.remove('err'); btn.setAttribute('aria-label', 'Copy to clipboard'); }, 2000);
     }
   });
 
@@ -235,12 +239,16 @@
       ]);
       logEl.textContent = 'Ready: click Apply web.yaml to create the Deployment and Service.';
       applyBtn.disabled = false;
+      applyBtn.removeAttribute('aria-busy');
+      applyBtn.textContent = 'Apply web.yaml';
       killBtn.disabled = true;
     };
 
     applyBtn.addEventListener('click', () => {
       clearTimers();
       applyBtn.disabled = true;
+      applyBtn.setAttribute('aria-busy', 'true');
+      applyBtn.textContent = 'Applying...';
       logEl.textContent = '1/4 Parsing web.yaml and posting Deployment/web to kube-apiserver...';
       setBadge('deploy', 'active', 'is-active');
       later(() => {
@@ -265,6 +273,8 @@
         setBadge('deploy', 'ready', 'is-ready');
         setBadge('rs', '3/3 ready', 'is-ready');
         setBadge('svc', '3 endpoints', 'is-ready');
+        applyBtn.removeAttribute('aria-busy');
+        applyBtn.textContent = 'Applied';
         killBtn.disabled = false;
       }, 1150);
     });
@@ -313,22 +323,43 @@
     updateProg();
   }
 
-  /* screenshot lightbox */
+  /* screenshot loading & error fallback + lightbox with aria-busy */
+  document.querySelectorAll('.shot img').forEach((im) => {
+    const fig = im.closest('.shot');
+    if (!fig) return;
+    if (!im.complete) fig.classList.add('is-loading');
+    im.addEventListener('load', () => fig.classList.remove('is-loading'));
+    im.addEventListener('error', () => {
+      fig.classList.remove('is-loading');
+      fig.classList.add('is-error');
+      if (!fig.querySelector('.shot-err')) {
+        const p = document.createElement('p');
+        p.className = 'shot-err';
+        p.textContent = 'Screenshot could not be loaded.';
+        fig.appendChild(p);
+      }
+    });
+  });
+
   const box = document.querySelector('.lightbox');
   if (box) {
     const img = new Image();
     const cap = box.querySelector('p');
     box.insertBefore(img, cap);
     let opener = null;
-    const close = () => { box.hidden = true; document.body.style.overflow = ''; opener?.focus(); };
+    const close = () => { box.hidden = true; box.removeAttribute('aria-busy'); document.body.style.overflow = ''; opener?.focus(); };
     document.addEventListener('click', (e) => {
       const a = e.target.closest('a.zoom');
       if (!a) return;
       e.preventDefault();
       opener = a;
+      const caption = a.dataset.caption || '';
+      box.setAttribute('aria-busy', 'true');
+      cap.textContent = 'Loading screenshot...';
+      img.onload = () => { box.removeAttribute('aria-busy'); cap.textContent = caption; };
+      img.onerror = () => { box.removeAttribute('aria-busy'); cap.textContent = 'Screenshot could not be loaded.'; };
       img.src = a.getAttribute('href');
       img.alt = a.querySelector('img')?.alt || '';
-      cap.textContent = a.dataset.caption || '';
       box.hidden = false;
       document.body.style.overflow = 'hidden';
       box.querySelector('.lightbox-close').focus();
@@ -364,6 +395,13 @@
       apply();
     }));
     search.addEventListener('input', apply);
+    document.querySelector('[data-cmd-reset]')?.addEventListener('click', () => {
+      search.value = '';
+      cat = 'all';
+      chips.forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.cat === 'all')));
+      apply();
+      search.focus();
+    });
     const q = new URLSearchParams(location.search).get('q');
     if (q) { search.value = q; apply(); }
     document.addEventListener('keydown', (e) => {
@@ -380,7 +418,7 @@
   window.addEventListener('hashchange', openHash);
 
   /* mark the section being read in the lab contents */
-  const tocLinks = [...document.querySelectorAll('.lab-side .toc a[href^="#"]')];
+  const tocLinks = [...document.querySelectorAll('.toc-box .toc a[href^="#"]')];
   if (tocLinks.length && 'IntersectionObserver' in window) {
     const map = new Map(tocLinks.map((a) => [decodeURIComponent(a.hash.slice(1)), a]));
     const obs = new IntersectionObserver((entries) => {
@@ -449,8 +487,16 @@
         if (act === 'conflict') { status.textContent = 'Stale resourceVersion'; out.innerHTML = 'Re-fetch the latest YAML with <code>kubectl get -o yaml</code> before running <code>kubectl replace</code>.'; }
       } else if (kind === 'lab1') {
         if (act === 'kill' && !workerDown) {
+          btn.disabled = true;
+          btn.setAttribute('aria-busy', 'true');
+          btn.textContent = 'Healing...';
           status.textContent = '2 / 3 Ready: ReplicaSet recreating Pod...';
-          setTimeout(() => { if (!workerDown) status.textContent = '3 / 3 Pods Running (self-healed)'; }, 550);
+          setTimeout(() => {
+            btn.disabled = false;
+            btn.removeAttribute('aria-busy');
+            btn.textContent = 'Kill a Pod';
+            if (!workerDown) status.textContent = '3 / 3 Pods Running (self-healed)';
+          }, 550);
         } else if (act === 'stop') {
           workerDown = true;
           status.textContent = 'klu-worker NotReady: Pods moved to klu-worker2';

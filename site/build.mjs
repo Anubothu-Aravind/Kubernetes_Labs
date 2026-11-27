@@ -186,7 +186,7 @@ function renderMarkdown(md, labDir) {
         const src = rewriteAsset(href, labDir);
         const cap = prettyCaption(text);
         const shotName = prettyShotName(href, text);
-        return `<figure class="shot"><figcaption><span class="shot-when">Take screenshot: <strong>${esc(shotName)}</strong></span><span class="shot-hint">Click to zoom</span></figcaption><a href="${src}" class="zoom" data-caption="${escAttr(`${shotName}: ${cap}`)}"><img loading="lazy" src="${src}" alt="${escAttr(cap)}"></a></figure>`;
+        return `<figure class="shot"><figcaption><span class="shot-when">Take screenshot: <strong>${esc(shotName)}</strong></span><span class="shot-hint">Click to zoom</span></figcaption><a href="${src}" class="zoom" data-caption="${escAttr(`${shotName}: ${cap}`)}"><img loading="lazy" decoding="async" src="${src}" alt="${escAttr(cap)}"></a></figure>`;
       },
       link({ href, title, tokens }) {
         const inner = this.parser.parseInline(tokens);
@@ -365,6 +365,12 @@ function layout({ title, description, active = '', body, depth = 0, side = true 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)} | kubelabs</title>
 <meta name="description" content="${escAttr(description)}">
+<meta property="og:type" content="website">
+<meta property="og:title" content="${escAttr(title)} | kubelabs">
+<meta property="og:description" content="${escAttr(description)}">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="${escAttr(title)} | kubelabs">
+<meta name="twitter:description" content="${escAttr(description)}">
 <link rel="icon" href="${root}assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1004,6 +1010,7 @@ function renderLabPage(lab, labs) {
   <details class="toc-box"><summary>On this page</summary><ol class="toc">${tocHtml}</ol></details>
   ${lab.sourceFiles.length && repo.url ? `<p class="sources"><strong>Source files:</strong> ${lab.sourceFiles.map((f) => `<a href="${githubLink(f)}" rel="noopener"><code>${esc(f.replace(`${lab.dir}/`, ''))}</code></a>`).join(' ')}</p>` : ''}
   <div class="prose">${html}</div>
+  <p class="back-top"><a class="key" href="#main">Back to top</a></p>
   <nav class="pager" aria-label="Other chapters">
     ${prev ? `<a class="key" href="lab-${prev.n}.html"><span>Previous</span>Chapter ${prev.n}</a>` : `<a class="key" href="../roadmap.html"><span>Back to</span>All chapters</a>`}
     ${next ? `<a class="key key--primary next" href="lab-${next.n}.html"><span>Next</span>Chapter ${next.n}</a>` : `<a class="key key--primary next" href="../commands.html"><span>Next</span>All commands</a>`}
@@ -1076,7 +1083,7 @@ function renderCommands() {
       ${LESSON_ORDER.map((id) => `<button type="button" class="chip" data-cat="${id}" aria-pressed="false">${esc(lessonCat(id).label)} ${count(id)}</button>`).join('')}
     </div>
   </div>
-  <p class="empty" role="status" hidden>No command matches. Try one word.</p>
+  <div class="empty" role="status" hidden><p>No command matches that filter.</p><button type="button" class="key" data-cmd-reset>Reset search &amp; filters</button></div>
   ${groups}
   <section id="shell-diffs">
     <h2>bash and PowerShell, side by side</h2>
