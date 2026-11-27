@@ -582,10 +582,12 @@ function clusterDiagram() {
     <div class="node-card node" data-node="w1">
       <div class="node-head"><span class="node-id">${K8S_ICONS.node}<strong>klu-worker</strong></span><span class="node-role">worker</span></div>
       <div class="node-pills"><span>kubelet</span><span>pods</span></div>
+      <div class="node-pods" data-node-pods="w1"></div>
     </div>
     <div class="node-card node" data-node="w2">
       <div class="node-head"><span class="node-id">${K8S_ICONS.node}<strong>klu-worker2</strong></span><span class="node-role">worker</span></div>
       <div class="node-pills"><span>kubelet</span><span>pods</span></div>
+      <div class="node-pods" data-node-pods="w2"></div>
     </div>
   </div>`;
 }

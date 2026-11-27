@@ -120,17 +120,17 @@
       { t: 'gap' },
       { t: 'cmd', text: 'kubectl get pods -o wide' },
       { t: 'out', text: 'NAME                   READY   STATUS    NODE' },
-      { t: 'out', text: 'web-6d8f-9xk2p         1/1     Running   klu-worker', light: 'w1', ready: true },
-      { t: 'out', text: 'web-6d8f-4m7qr         1/1     Running   klu-worker2', light: 'w2', ready: true },
-      { t: 'out', text: 'web-6d8f-7t2vn         1/1     Running   klu-worker', light: 'w1', ready: true },
+      { t: 'out', text: 'web-6d8f-9xk2p         1/1     Running   klu-worker', light: 'w1', addPod: ['w1', 'web-9xk2p', 'ok'], ready: true },
+      { t: 'out', text: 'web-6d8f-4m7qr         1/1     Running   klu-worker2', light: 'w2', addPod: ['w2', 'web-4m7qr', 'ok'], ready: true },
+      { t: 'out', text: 'web-6d8f-7t2vn         1/1     Running   klu-worker', light: 'w1', addPod: ['w1', 'web-7t2vn', 'ok'], ready: true },
     ],
     heal: [
       { t: 'cmd', text: 'kubectl delete pod web-6d8f-9xk2p' },
-      { t: 'out', text: 'pod "web-6d8f-9xk2p" deleted', light: 'w1' },
+      { t: 'out', text: 'pod "web-6d8f-9xk2p" deleted', light: 'w1', killPod: ['w1', 'web-9xk2p'] },
       { t: 'gap' },
       { t: 'cmd', text: 'kubectl get pods -o wide' },
       { t: 'out', text: 'ReplicaSet saw 2/3 -> scheduling replacement', light: 'cp' },
-      { t: 'out', text: 'web-6d8f-8p4lz         1/1     Running   klu-worker2', light: 'w2', ready: true },
+      { t: 'out', text: 'web-6d8f-8p4lz         1/1     Running   klu-worker2', light: 'w2', addPod: ['w2', 'web-8p4lz', 'new'], ready: true },
       { t: 'out', text: 'web-6d8f-4m7qr         1/1     Running   klu-worker2', light: 'w2', ready: true },
       { t: 'out', text: 'web-6d8f-7t2vn         1/1     Running   klu-worker', light: 'w1', ready: true },
     ],
@@ -138,28 +138,61 @@
 
   if (session && diagram) {
     let runId = 0;
+    const HERO_POD_SVG = '<svg class="k8s-hex" viewBox="0 0 40 40" width="18" height="18" aria-hidden="true"><polygon points="20,2 34,9 38,24 28,36 12,36 2,24 6,9" fill="currentColor"/><polygon points="20,10 29,15 29,25 20,30 11,25 11,15" fill="none" stroke="#fff" stroke-width="2"/><path d="M11 15l9 5 9-5M20 20v10" stroke="#fff" stroke-width="1.8"/></svg>';
+    const w1Pods = diagram.querySelector('[data-node-pods="w1"]');
+    const w2Pods = diagram.querySelector('[data-node-pods="w2"]');
+    const podState = { w1: [], w2: [] };
+    const syncPods = () => {
+      const render = (list) => list.map((p) => `<span class="hero-pod is-${p.st}">${HERO_POD_SVG}<span>${p.name}</span></span>`).join('');
+      if (w1Pods) w1Pods.innerHTML = render(podState.w1);
+      if (w2Pods) w2Pods.innerHTML = render(podState.w2);
+    };
+
     const renderScenario = (key) => {
       const items = HERO_SCENARIOS[key] || HERO_SCENARIOS.boot;
       session.innerHTML = items.map((l) => {
         if (l.t === 'gap') return '<span class="ln ln-gap"> </span>';
-        const attrs = l.light ? ` data-light="${l.light}"` : '';
+        const attrs = [
+          l.light ? ` data-light="${l.light}"` : '',
+          l.addPod ? ` data-add-pod="${l.addPod.join(',')}"` : '',
+          l.killPod ? ` data-kill-pod="${l.killPod.join(',')}"` : '',
+        ].join('');
         if (l.t === 'cmd') return `<span class="ln ln-cmd"${attrs}><span class="ps">$ </span><span class="typed" data-full="${l.text.replace(/"/g, '&quot;')}">${l.text}</span></span>`;
         return `<span class="ln ln-out${l.ready ? ' ready' : ''}"${attrs}>${l.text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`;
       }).join('') + '<span class="caret" aria-hidden="true"> </span>';
     };
 
     const light = (id) => diagram.querySelectorAll(`[data-node="${id}"]`).forEach((n) => n.classList.add('lit'));
+    const applyStepEffect = (ln) => {
+      if (ln.dataset.light) light(ln.dataset.light);
+      if (ln.dataset.addPod) {
+        const [w, name, st] = ln.dataset.addPod.split(',');
+        if (!podState[w].some((p) => p.name === name)) podState[w].push({ name, st });
+        syncPods();
+      }
+      if (ln.dataset.killPod) {
+        const [w, name] = ln.dataset.killPod.split(',');
+        const target = podState[w].find((p) => p.name === name);
+        if (target) target.st = 'dead';
+        syncPods();
+      }
+    };
+
     const run = async (key = 'boot') => {
       const id = ++runId;
       renderScenario(key);
+      podState.w1 = key === 'heal' ? [{ name: 'web-9xk2p', st: 'ok' }, { name: 'web-7t2vn', st: 'ok' }] : [];
+      podState.w2 = key === 'heal' ? [{ name: 'web-4m7qr', st: 'ok' }] : [];
+      syncPods();
       const lines = [...session.querySelectorAll('.ln')];
       if (reduced) {
-        lines.forEach((ln) => { ln.classList.add('shown'); if (ln.dataset.light) light(ln.dataset.light); });
+        lines.forEach((ln) => { ln.classList.add('shown'); applyStepEffect(ln); });
         if (replayBtn) replayBtn.hidden = false;
         return;
       }
       if (replayBtn) replayBtn.hidden = true;
       diagram.querySelectorAll('[data-node]').forEach((n) => n.classList.remove('lit'));
+      if (key !== 'boot') { light('cp'); light('w1'); light('w2'); }
       session.classList.add('is-running');
       diagram.classList.add('is-running');
       const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -180,7 +213,7 @@
           ln.classList.add('shown');
           await wait(ln.classList.contains('ln-gap') ? 80 : 120);
         }
-        if (ln.dataset.light) light(ln.dataset.light);
+        applyStepEffect(ln);
       }
       if (id === runId && replayBtn) replayBtn.hidden = false;
     };
