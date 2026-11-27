@@ -30,3 +30,10 @@
   - Question 1: Create custom ConfigMap with student ID and section metadata (`student-2601050069`).
   - Question 2: Implement department-based namespace filtering (`klu.edu/dept=cse`).
   - Question 3: Implement automated cleanup and garbage collection upon label removal.
+
+### [Lab 4: Read the Scheduler and Find Why Pods Stay Pending](./Lab_4/README.md)
+- **InLab:**
+  - Question 1: Sparse-clone `kube-scheduler` (`v1.37.0`), list default filter and score plugins with weights, and trace `schedule_one.go`.
+  - Question 2: Induce `Pending` Pods across five experiments (`NodeResourcesFit`, `NodeAffinity`, `TaintToleration`, `NodePorts`, `NodeUnschedulable`) and match `FailedScheduling` events to their plugins.
+- **PostLab:**
+  - Status: Pending / To be assigned.
